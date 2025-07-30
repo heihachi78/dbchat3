@@ -1,0 +1,25 @@
+CREATE TABLE HR.JOBS 
+    ( 
+     JOB_ID VARCHAR2 (10 BYTE)  NOT NULL , 
+     JOB_TITLE VARCHAR2 (35 BYTE)  NOT NULL , 
+     MIN_SALARY NUMBER (6) , 
+     MAX_SALARY NUMBER (6) 
+    ) LOGGING 
+;
+
+
+
+COMMENT ON COLUMN HR.JOBS.JOB_ID IS 'Primary key of jobs table.' 
+;
+
+COMMENT ON COLUMN HR.JOBS.JOB_TITLE IS 'A not null column that shows job title, e.g. AD_VP, FI_ACCOUNTANT' 
+;
+
+COMMENT ON COLUMN HR.JOBS.MIN_SALARY IS 'Minimum salary for a job title.' 
+;
+
+COMMENT ON COLUMN HR.JOBS.MAX_SALARY IS 'Maximum salary for a job title' 
+;
+
+ALTER TABLE HR.JOBS 
+    ADD CONSTRAINT JOB_ID_PK PRIMARY KEY ( JOB_ID ) ;

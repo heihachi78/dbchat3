@@ -1,0 +1,8 @@
+CREATE INDEX hr.LOC_CITY_IX ON hr.LOCATIONS 
+    ( 
+     CITY ASC 
+    ) 
+    NOLOGGING 
+    NOCOMPRESS 
+    NOPARALLEL 
+;
