@@ -14,6 +14,7 @@ from lightrag.utils import EmbeddingFunc
 from lightrag.kg.shared_storage import initialize_pipeline_status
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 load_dotenv()
 
@@ -28,9 +29,13 @@ AZURE_EMBEDDING_API_VERSION = os.getenv("AZURE_EMBEDDING_API_VERSION")
 DATABASE_FILES_DIR = Path("database_files")
 WORKING_DIR = Path("working_dir")
 
-EMBEDDING_DIMENSION = 1536
+EMBEDDING_DIMENSION = 3072 #small 1536, large 3072
+
+logger.info("Loaded environment variables and parameters.")
 
 azure_openai_client = AzureOpenAI(api_version=AZURE_OPENAI_API_VERSION, azure_endpoint=AZURE_OPENAI_ENDPOINT, api_key=AZURE_OPENAI_API_KEY)
+
+logger.info("Initialized Azure OpenAI client.")
 
 sql_files = []
 if DATABASE_FILES_DIR.exists() and DATABASE_FILES_DIR.is_dir():
@@ -39,6 +44,8 @@ if DATABASE_FILES_DIR.exists() and DATABASE_FILES_DIR.is_dir():
             content = f.read()
 
         sql_files.append((sql_file, content))
+
+logger.info(f"Found {len(sql_files)} SQL files in {DATABASE_FILES_DIR}.")
 
 system_prompt = """
 You are an expert database documentation specialist. Your role is to create comprehensive, detailed documentation for database objects based on DDL (Data Definition Language) statements provided by users.
@@ -110,18 +117,24 @@ Provide well-structured markdown documentation with clear headings. Make the doc
 Always begin your response with a clear heading identifying the database object name and type.
 """
 
+logger.info("System prompt for documentation generation initialized.")
+
 if os.path.exists(WORKING_DIR):
     shutil.rmtree(WORKING_DIR)
 
 os.mkdir(WORKING_DIR)
 
+logger.info(f"Working directory {WORKING_DIR} recreated.")
+
 for md_file in DATABASE_FILES_DIR.rglob("*.md"):
     try:
         md_file.unlink(missing_ok=True)
+        logger.info(f"Deleted file {md_file}")
     except PermissionError:
-        logging.error(f"Permission denied deleting file {md_file}")
+        logger.error(f"Permission denied deleting file {md_file}")
     except Exception as e:
-        logging.error(f"Unexpected error deleting file {md_file}: {e}")
+        logger.error(f"Unexpected error deleting file {md_file}: {e}")
+
 
 for sql_file, content in sql_files:
     user_prompt = content.strip()
@@ -137,15 +150,17 @@ for sql_file, content in sql_files:
         ).choices[0].message.content
     with open(sql_file.with_suffix(".md"), "w") as f:
         f.write(chat_completion)
+        logger.info(f"Generated documentation for {sql_file}.")
 
 for md_file in DATABASE_FILES_DIR.rglob("*.md"):
     try:
         target_file = Path(WORKING_DIR) / md_file.name
         target_file.write_text(md_file.read_text(encoding="utf-8"), encoding="utf-8")
+        logger.info(f"Copied file {md_file} to {target_file}")
     except PermissionError:
-        logging.error(f"Permission denied copying file {md_file} to {target_file}")
+        logger.error(f"Permission denied copying file {md_file} to {target_file}")
     except Exception as e:
-        logging.error(f"Unexpected error copying file {md_file} to {target_file}: {e}")
+        logger.error(f"Unexpected error copying file {md_file} to {target_file}: {e}")
 
 async def llm_model_func(
     prompt, system_prompt=None, history_messages=[], keyword_extraction=False, **kwargs
@@ -170,6 +185,7 @@ async def llm_model_func(
         top_p=kwargs.get("top_p", 1),
         n=kwargs.get("n", 1),
     )
+    logger.info(f"LLM model response generated.")
     return chat_completion.choices[0].message.content
 
 async def embedding_func(texts: list[str]) -> np.ndarray:
@@ -181,6 +197,7 @@ async def embedding_func(texts: list[str]) -> np.ndarray:
     embedding = client.embeddings.create(model=AZURE_EMBEDDING_DEPLOYMENT, input=texts)
 
     embeddings = [item.embedding for item in embedding.data]
+    logger.info(f"Generated embeddings for {len(texts)} texts.")
     return np.array(embeddings)
 
 async def initialize_rag():
@@ -197,14 +214,19 @@ async def initialize_rag():
     await rag.initialize_storages()
     await initialize_pipeline_status()
 
+    logger.info("Initialized LightRAG with storage and pipeline status.")
     return rag
 
 rag = asyncio.run(initialize_rag())
 
+logger.info("LightRAG initialized successfully.")
+
 for md_file in WORKING_DIR.rglob("*.md"):
-    print(md_file.relative_to(WORKING_DIR))
     with open(md_file, encoding="utf-8") as doc:
-        rag.insert([doc.read()])
+        rag.insert([doc.read()], file_paths=[md_file.name])
+        logger.info(f"Inserted documentation from {md_file} into RAG storage.")
+
+logger.info("All documentation files inserted into RAG storage.")
 
 query_text = "What tables are in the database?"
 
@@ -227,3 +249,13 @@ print("==" * 50)
 print("\nResult (Hybrid):")
 print(rag.query(query_text, param=QueryParam(mode="hybrid")))
 print("\n")
+
+# LLM
+# 215 requests
+# 709K total tokens 
+# 431K Prompt tokens
+# 278K completion tokens
+# Embedding
+# 3K requests
+# 503K total tokens
+# 503K prompt tokens
