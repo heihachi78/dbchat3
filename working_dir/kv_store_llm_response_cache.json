@@ -2559,5 +2559,57 @@
     "create_time": 1753991523,
     "update_time": 1753991523,
     "_id": "hybrid:query:952bfe0914f172312964061099f50f7b"
+  },
+  "global:keywords:c4607d32b3457e91a2d255461b08aacb": {
+    "return": "{\"high_level_keywords\": [\"Database management\", \"Database views\"], \"low_level_keywords\": [\"List views\", \"Database query\", \"SHOW VIEW\", \"Information_schema\", \"SQL command\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "list the view is the database",
+    "create_time": 1753993156,
+    "update_time": 1753993156,
+    "_id": "global:keywords:c4607d32b3457e91a2d255461b08aacb"
+  },
+  "global:keywords:b885a3c708c3f2e9b5a7f0830f7308a1": {
+    "return": "{\"high_level_keywords\": [\"Employee hierarchy\", \"Organizational structure\", \"Hierarchical listing\"], \"low_level_keywords\": [\"Query\", \"Employees\", \"Manager\", \"Reporting structure\", \"Hierarchy visualization\", \"Database\", \"Employee ID\", \"Manager ID\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "write a query that list hierarchically all the employees showing the hierarchy between them",
+    "create_time": 1753993406,
+    "update_time": 1753993406,
+    "_id": "global:keywords:b885a3c708c3f2e9b5a7f0830f7308a1"
+  },
+  "global:keywords:a9ee099fb8dcbff85dcd1f67476bfe5f": {
+    "return": "{\"high_level_keywords\": [\"Database query\", \"Data retrieval\"], \"low_level_keywords\": [\"Full name\", \"SQL\", \"SELECT statement\", \"Database table\", \"Column name\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "how can i query the full name from the database?",
+    "create_time": 1753993450,
+    "update_time": 1753993450,
+    "_id": "global:keywords:a9ee099fb8dcbff85dcd1f67476bfe5f"
+  },
+  "hybrid:keywords:1d0ee175cee8fd88db0130ab91c3b717": {
+    "return": "{\"high_level_keywords\": [\"HR department\", \"Business process\", \"Database structure\", \"Organizational operations\"], \"low_level_keywords\": [\"Employee records\", \"Payroll system\", \"Recruitment data\", \"HR database tables\", \"Workflow integration\", \"Data management\", \"Process automation\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "how is the hr department involved in the business process based on the database structure?",
+    "create_time": 1753993940,
+    "update_time": 1753993940,
+    "_id": "hybrid:keywords:1d0ee175cee8fd88db0130ab91c3b717"
   }
 }
