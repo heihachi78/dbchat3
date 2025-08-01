@@ -43,7 +43,6 @@ MarkupSafe==3.0.2
 matplotlib-inline==0.1.7
 multidict==6.6.3
 nano-vectordb==0.0.4.3
-nest-asyncio==1.6.0
 networkx==3.5
 numpy==2.3.2
 openai==1.98.0

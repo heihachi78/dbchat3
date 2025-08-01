@@ -65,10 +65,10 @@ Required environment variables in `.env`:
 - `AZURE_OPENAI_DEPLOYMENT` (GPT-4 model)
 - `AZURE_EMBEDDING_DEPLOYMENT`
 - `AZURE_EMBEDDING_API_VERSION`
+- `LOG_DIR` (optional, defaults to "logs")
 
 ## Important Patterns
 
-- Uses `nest_asyncio` for async operations in Jupyter environments
 - Embedding dimension set to 3072 for text-embedding-3-small
 - Comprehensive logging throughout for debugging
 - Error handling for file operations and API calls

@@ -1,18 +1,26 @@
 import argparse
 import asyncio
 import logging
-import nest_asyncio
-from azure_client import AzureOpenAIClient
-from documentation_processor import DocumentationProcessor
-from rag_manager import RAGManager
-
-# Enable nested event loops for Jupyter compatibility
-nest_asyncio.apply()
+import os
+from datetime import datetime
+from src import AzureOpenAIClient, DocumentationProcessor, RAGManager, Config
 
 # Configure logging
+# Create logs directory if it doesn't exist
+os.makedirs(Config.LOG_DIR, exist_ok=True)
+
+# Set LOG_DIR environment variable for LightRAG
+os.environ['LOG_DIR'] = str(Config.LOG_DIR)
+
+# Configure logging with file handler
+log_filename = Config.LOG_DIR / f"dbchat3_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_filename),
+        logging.StreamHandler()  # Keep console output
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -32,7 +40,7 @@ async def process_database_files():
     await rag_manager.initialize()
     
     # Insert documents
-    rag_manager.insert_documents()
+    await rag_manager.insert_documents()
     
     logger.info("Database file processing completed")
     return rag_manager
@@ -43,18 +51,24 @@ async def chat_mode(rag_manager=None):
     if not rag_manager:
         rag_manager = RAGManager()
         await rag_manager.initialize()
-        rag_manager.insert_documents()
+        await rag_manager.insert_documents()
     
     print("\n" + "="*50)
     print("DBChat3 - Interactive Query Mode")
     print("="*50)
     print("Enter your queries about the database schema.")
-    print("Type 'exit', 'quit', or 'q' to quit.")
-    print("Use '/mode <naive|local|global|hybrid>' to change query mode.")
-    print("Type 'modes' to test all query modes.")
+    print("The system maintains conversation history for context.")
+    print("")
+    print("Commands:")
+    print("  exit, quit, q     - Exit the application")
+    print("  /mode <mode>      - Change query mode (naive|local|global|hybrid)")
+    print("  /clear            - Clear conversation history")
+    print("  /history          - Show conversation history")
+    print("  modes             - Test query with all modes")
     print("="*50 + "\n")
     
     current_mode = "hybrid"  # Default mode
+    conversation_history = []  # Store conversation history
     
     while True:
         try:
@@ -75,11 +89,31 @@ async def chat_mode(rag_manager=None):
                     print(f"Invalid mode. Available modes: naive, local, global, hybrid")
                 continue
             
+            # Check for clear history command
+            if query.lower() == '/clear':
+                conversation_history.clear()
+                print("Conversation history cleared.")
+                continue
+            
+            # Check for show history command
+            if query.lower() == '/history':
+                if not conversation_history:
+                    print("No conversation history.")
+                else:
+                    print("\nConversation History:")
+                    print("-" * 30)
+                    for i, msg in enumerate(conversation_history):
+                        role = msg["role"].capitalize()
+                        content = msg["content"][:100] + "..." if len(msg["content"]) > 100 else msg["content"]
+                        print(f"{i+1}. {role}: {content}")
+                    print("-" * 30)
+                continue
+            
             if query.lower() == 'modes':
                 test_query = input("Enter query to test all modes> ").strip()
                 if test_query:
                     print("\n" + "="*50)
-                    results = rag_manager.query_all_modes(test_query)
+                    results = await rag_manager.query_all_modes(test_query, conversation_history)
                     for mode, result in results.items():
                         print(f"\nResult ({mode.capitalize()}):")
                         print(result)
@@ -88,9 +122,16 @@ async def chat_mode(rag_manager=None):
             
             if query:
                 print("\nSearching...")
-                result = rag_manager.query(query, mode=current_mode)
+                
+                # Add user query to conversation history
+                conversation_history.append({"role": "user", "content": query})
+                
+                result = await rag_manager.query(query, mode=current_mode, conversation_history=conversation_history)
                 print("\nResult:")
                 print(result)
+                
+                # Add assistant response to conversation history
+                conversation_history.append({"role": "assistant", "content": result})
         
         except KeyboardInterrupt:
             print("\n\nGoodbye!")

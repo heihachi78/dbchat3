@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from openai import AzureOpenAI
-from config import Config
+from .config import Config
 
 logger = logging.getLogger(__name__)
 

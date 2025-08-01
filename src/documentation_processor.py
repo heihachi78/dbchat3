@@ -2,8 +2,8 @@ import os
 import shutil
 import logging
 from pathlib import Path
-from azure_client import AzureOpenAIClient
-from config import Config
+from .azure_client import AzureOpenAIClient
+from .config import Config
 
 logger = logging.getLogger(__name__)
 

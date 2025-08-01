@@ -4,7 +4,7 @@ from openai import AzureOpenAI
 from lightrag import LightRAG, QueryParam
 from lightrag.utils import EmbeddingFunc
 from lightrag.kg.shared_storage import initialize_pipeline_status
-from config import Config
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -78,26 +78,30 @@ class RAGManager:
         
         logger.info("Initialized LightRAG with storage and pipeline status")
     
-    def insert_documents(self):
+    async def insert_documents(self):
         """Insert all markdown documents into RAG storage"""
         if not self.rag:
             raise RuntimeError("RAG not initialized. Call initialize() first.")
         
         for md_file in self.working_dir.rglob("*.md"):
             with open(md_file, encoding="utf-8") as doc:
-                self.rag.insert([doc.read()], file_paths=[md_file.name])
+                await self.rag.ainsert([doc.read()], file_paths=[md_file.name])
                 logger.info(f"Inserted documentation from {md_file} into RAG storage")
         
         logger.info("All documentation files inserted into RAG storage")
     
-    def query(self, text: str, mode: str = "hybrid") -> str:
-        """Query the RAG system"""
+    async def query(self, text: str, mode: str = "hybrid", conversation_history: list = None) -> str:
+        """Query the RAG system with optional conversation history"""
         if not self.rag:
             raise RuntimeError("RAG not initialized. Call initialize() first.")
         
-        return self.rag.query(text, param=QueryParam(mode=mode))
+        params = QueryParam(mode=mode)
+        if conversation_history:
+            params.conversation_history = conversation_history
+        
+        return await self.rag.aquery(text, param=params)
     
-    def query_all_modes(self, text: str) -> dict:
+    async def query_all_modes(self, text: str, conversation_history: list = None) -> dict:
         """Query using all available modes and return results"""
         if not self.rag:
             raise RuntimeError("RAG not initialized. Call initialize() first.")
@@ -107,7 +111,10 @@ class RAGManager:
         
         for mode in modes:
             try:
-                results[mode] = self.rag.query(text, param=QueryParam(mode=mode))
+                params = QueryParam(mode=mode)
+                if conversation_history:
+                    params.conversation_history = conversation_history
+                results[mode] = await self.rag.aquery(text, param=params)
             except Exception as e:
                 logger.error(f"Error querying in {mode} mode: {e}")
                 results[mode] = f"Error: {str(e)}"

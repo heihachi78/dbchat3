@@ -17,6 +17,7 @@ class Config:
     # Directories
     DATABASE_FILES_DIR = Path("database_files")
     WORKING_DIR = Path("working_dir")
+    LOG_DIR = Path(os.getenv("LOG_DIR", "logs"))
     
     # Model settings
     EMBEDDING_DIMENSION = 3072  # small 1536, large 3072
