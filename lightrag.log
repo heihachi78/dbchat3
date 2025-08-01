@@ -116,3 +116,7 @@
 2025-07-31 22:32:21,145 - lightrag - WARNING - Rerank is enabled but no rerank model is configured. Please set up a rerank model or set enable_rerank=False in query parameters.
 2025-07-31 22:32:21,153 - lightrag - INFO - Final context: 72 entities, 125 relations, 10 chunks
 2025-07-31 22:32:24,283 - uvicorn.access - INFO - 127.0.0.1:38264 - "POST /query/stream HTTP/1.1" 200
+2025-07-31 22:34:15,285 - uvicorn.error - INFO - Shutting down
+2025-07-31 22:34:15,386 - uvicorn.error - INFO - Waiting for application shutdown.
+2025-07-31 22:34:15,387 - uvicorn.error - INFO - Application shutdown complete.
+2025-07-31 22:34:15,387 - uvicorn.error - INFO - Finished server process [39672]
