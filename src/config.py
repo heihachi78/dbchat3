@@ -14,6 +14,13 @@ class Config:
     AZURE_EMBEDDING_DEPLOYMENT = os.getenv("AZURE_EMBEDDING_DEPLOYMENT")
     AZURE_EMBEDDING_API_VERSION = os.getenv("AZURE_EMBEDDING_API_VERSION")
     
+    # Neo4j settings
+    NEO4J_URI = os.getenv("NEO4J_URI", "neo4j://localhost:7687")
+    NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
+    NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+    NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
+    NEO4J_WORKSPACE = os.getenv("NEO4J_WORKSPACE")
+    
     # Directories
     DATABASE_FILES_DIR = Path("database_files")
     WORKING_DIR = Path("working_dir")
@@ -21,6 +28,17 @@ class Config:
     
     # Model settings
     EMBEDDING_DIMENSION = 3072  # small 1536, large 3072
+    
+    @classmethod
+    def validate_neo4j_config(cls):
+        """Validate Neo4j configuration"""
+        if not cls.NEO4J_PASSWORD:
+            raise ValueError("NEO4J_PASSWORD environment variable must be set")
+        
+        # Validate URI scheme
+        valid_schemes = ['bolt', 'bolt+ssc', 'bolt+s', 'neo4j', 'neo4j+ssc', 'neo4j+s']
+        if not any(cls.NEO4J_URI.startswith(scheme + '://') for scheme in valid_schemes):
+            raise ValueError(f"NEO4J_URI must use one of these schemes: {valid_schemes}")
     
     # Documentation system prompt
     SYSTEM_PROMPT = """

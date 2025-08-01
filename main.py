@@ -36,6 +36,10 @@ async def process_database_files():
     # Process SQL files
     doc_processor.process_sql_files()
     
+    # Clear Neo4j database before starting
+    logger.info("Clearing Neo4j database...")
+    rag_manager.clear_neo4j_database()
+    
     # Initialize RAG
     await rag_manager.initialize()
     
@@ -43,6 +47,30 @@ async def process_database_files():
     await rag_manager.insert_documents()
     
     logger.info("Database file processing completed")
+    return rag_manager
+
+async def run_pipeline():
+    """Run RAG pipeline without generating documentation (assumes MD files exist)"""
+    logger.info("Starting RAG pipeline (skipping documentation generation)...")
+    
+    # Initialize components
+    doc_processor = DocumentationProcessor(None)  # No Azure client needed
+    rag_manager = RAGManager()
+    
+    # Clear Neo4j database before starting
+    logger.info("Clearing Neo4j database...")
+    rag_manager.clear_neo4j_database()
+    
+    # Recreate working directory and copy existing MD files
+    doc_processor.recreate_working_dir_and_copy_docs()
+    
+    # Initialize RAG
+    await rag_manager.initialize()
+    
+    # Insert documents
+    await rag_manager.insert_documents()
+    
+    logger.info("RAG pipeline completed")
     return rag_manager
 
 async def chat_mode(rag_manager=None):
@@ -153,6 +181,11 @@ def main():
         help="Process all SQL files and rebuild documentation"
     )
     parser.add_argument(
+        "--run_pipeline",
+        action="store_true",
+        help="Run RAG pipeline without generating documentation (assumes MD files exist)"
+    )
+    parser.add_argument(
         "--chat",
         action="store_true",
         help="Interactive chat mode for querying database documentation"
@@ -161,13 +194,20 @@ def main():
     args = parser.parse_args()
     
     # If no arguments provided, show help
-    if not args.process_database_files and not args.chat:
+    if not args.process_database_files and not args.run_pipeline and not args.chat:
         parser.print_help()
         return
     
     # Run the appropriate mode
     if args.process_database_files:
         rag_manager = asyncio.run(process_database_files())
+        
+        # If chat mode also requested, continue with it
+        if args.chat:
+            asyncio.run(chat_mode(rag_manager))
+    
+    elif args.run_pipeline:
+        rag_manager = asyncio.run(run_pipeline())
         
         # If chat mode also requested, continue with it
         if args.chat:

@@ -14,13 +14,17 @@ class DocumentationProcessor:
         self.working_dir = Config.WORKING_DIR
         self.system_prompt = Config.SYSTEM_PROMPT
     
-    def process_sql_files(self):
-        """Process all SQL files and generate documentation"""
-        # Clean up working directory
+    def _cleanup_working_dir(self):
+        """Clean up and recreate working directory"""
         if os.path.exists(self.working_dir):
             shutil.rmtree(self.working_dir)
         os.mkdir(self.working_dir)
         logger.info(f"Working directory {self.working_dir} recreated")
+    
+    def process_sql_files(self):
+        """Process all SQL files and generate documentation"""
+        # Clean up working directory
+        self._cleanup_working_dir()
         
         # Clean up existing markdown files
         self._cleanup_existing_docs()
@@ -86,3 +90,11 @@ class DocumentationProcessor:
                 logger.error(f"Permission denied copying file {md_file}")
             except Exception as e:
                 logger.error(f"Unexpected error copying file {md_file}: {e}")
+    
+    def recreate_working_dir_and_copy_docs(self):
+        """Recreate working directory and copy existing markdown files"""
+        # Clean up working directory
+        self._cleanup_working_dir()
+        
+        # Copy existing markdown files to working directory
+        self._copy_docs_to_working_dir()

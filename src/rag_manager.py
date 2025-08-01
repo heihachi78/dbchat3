@@ -5,6 +5,7 @@ from lightrag import LightRAG, QueryParam
 from lightrag.utils import EmbeddingFunc
 from lightrag.kg.shared_storage import initialize_pipeline_status
 from .config import Config
+from neo4j import GraphDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -61,22 +62,53 @@ class RAGManager:
         self.working_dir = Config.WORKING_DIR
         self.rag = None
     
+    def clear_neo4j_database(self):
+        """Clear all data from Neo4j database"""
+        try:
+            driver = GraphDatabase.driver(
+                Config.NEO4J_URI,
+                auth=(Config.NEO4J_USERNAME, Config.NEO4J_PASSWORD)
+            )
+            
+            with driver.session(database=Config.NEO4J_DATABASE) as session:
+                # Delete all nodes and relationships
+                session.run("MATCH (n) DETACH DELETE n")
+                logger.info("Neo4j database cleared successfully")
+            
+            driver.close()
+        except Exception as e:
+            logger.error(f"Failed to clear Neo4j database: {e}")
+            raise
+    
     async def initialize(self):
-        """Initialize LightRAG with Azure OpenAI functions"""
-        self.rag = LightRAG(
-            working_dir=str(self.working_dir),
-            llm_model_func=llm_model_func,
-            embedding_func=EmbeddingFunc(
-                embedding_dim=Config.EMBEDDING_DIMENSION,
-                max_token_size=8192,
-                func=embedding_func,
-            ),
-        )
+        """Initialize LightRAG with Azure OpenAI functions and Neo4j storage"""
+        # Validate Neo4j configuration
+        try:
+            Config.validate_neo4j_config()
+            logger.info("Neo4j configuration validated successfully")
+        except ValueError as e:
+            logger.error(f"Neo4j configuration error: {e}")
+            raise
         
-        await self.rag.initialize_storages()
-        await initialize_pipeline_status()
-        
-        logger.info("Initialized LightRAG with storage and pipeline status")
+        try:
+            self.rag = LightRAG(
+                working_dir=str(self.working_dir),
+                llm_model_func=llm_model_func,
+                embedding_func=EmbeddingFunc(
+                    embedding_dim=Config.EMBEDDING_DIMENSION,
+                    max_token_size=8192,
+                    func=embedding_func,
+                ),
+                graph_storage="Neo4JStorage",
+            )
+            
+            await self.rag.initialize_storages()
+            await initialize_pipeline_status()
+            
+            logger.info("Initialized LightRAG with Neo4j graph storage and pipeline status")
+        except Exception as e:
+            logger.error(f"Failed to initialize LightRAG with Neo4j: {e}")
+            raise
     
     async def insert_documents(self):
         """Insert all markdown documents into RAG storage"""
