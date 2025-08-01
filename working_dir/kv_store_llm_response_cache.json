@@ -2806,5 +2806,31 @@
     "create_time": 1754062050,
     "update_time": 1754062050,
     "_id": "hybrid:query:a521ee143c431d4e7ea0bef0388277e8"
+  },
+  "hybrid:keywords:a8ad3f1638afae947acec332d2384cd8": {
+    "return": "{\"high_level_keywords\": [\"Function rewriting\", \"Code transformation\"], \"low_level_keywords\": [\"Rewrite\", \"Function\", \"Code\", \"Implementation\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "now rewrite it as a function",
+    "create_time": 1754062069,
+    "update_time": 1754062069,
+    "_id": "hybrid:keywords:a8ad3f1638afae947acec332d2384cd8"
+  },
+  "hybrid:query:a8ad3f1638afae947acec332d2384cd8": {
+    "return": "Certainly! Below is a rewritten summary of the provided knowledge, structured as a function in pseudocode. This function encapsulates the key logic and relationships described for the HR database indexes and tables.\n\n---\n\n## Function: SummarizeHRIndexUsage\n\n```python\ndef SummarizeHRIndexUsage():\n    \"\"\"\n    Summarizes the purpose, structure, and business context of key HR indexes and tables.\n    Returns a dictionary with index/table names as keys and their summarized roles and relationships as values.\n    \"\"\"\n\n    summary = {}\n\n    # EMP_DEPARTMENT_IX Index\n    summary['EMP_DEPARTMENT_IX'] = {\n        'Purpose': 'Optimizes queries filtering, joining, or sorting employees by department.',\n        'IndexedTable': 'HR.EMPLOYEES',\n        'IndexedColumn': 'DEPARTMENT_ID',\n        'IndexType': 'Standard B-tree',\n        'Options': ['NOLOGGING', 'NOCOMPRESS', 'NOPARALLEL'],\n        'BusinessContext': [\n            'Department-wise employee reports',\n            'Department-level access controls',\n            'Analytics and dashboards by department',\n            'Accelerates joins with HR.DEPARTMENTS'\n        ],\n        'Relationships': [\n            'Supports foreign key from EMPLOYEES.DEPARTMENT_ID to DEPARTMENTS.DEPARTMENT_ID',\n            'Used by application logic or stored procedures for department-based access'\n        ],\n        'Maintenance': [\n            'Rebuild after large data loads or changes to DEPARTMENT_ID',\n            'Monitor for fragmentation'\n        ]\n    }\n\n    # JHIST_JOB_IX Index\n    summary['JHIST_JOB_IX'] = {\n        'Purpose': 'Optimizes queries on JOB_ID in HR.JOB_HISTORY.',\n        'IndexedTable': 'HR.JOB_HISTORY',\n        'IndexedColumn': 'JOB_ID',\n        'IndexType': 'Standard B-tree',\n        'Options': ['NOLOGGING', 'NOCOMPRESS', 'NOPARALLEL'],\n        'BusinessContext': [\n            'Analyzing employee job transitions',\n            'Reporting and analytics by job role'\n        ],\n        'Relationships': [\n            'Supports foreign key from JOB_HISTORY.JOB_ID to JOBS.JOB_ID'\n        ],\n        'Maintenance': [\n            'Rebuild after changes to JOB_ID or large data loads'\n        ]\n    }\n\n    # HR.JOBS Table\n    summary['HR.JOBS'] = {\n        'Purpose': 'Master reference for all job roles, enforcing job-related business rules.',\n        'Columns': ['JOB_ID (PK)', 'JOB_TITLE', 'MIN_SALARY', 'MAX_SALARY'],\n        'BusinessContext': [\n            'Validates job assignments',\n            'Supports compensation analysis and salary band enforcement',\n            'Enables reporting on job structures'\n        ],\n        'Relationships': [\n            'JOB_ID referenced by EMPLOYEES and JOB_HISTORY',\n            'Primary key constraint on JOB_ID'\n        ],\n        'Maintenance': [\n            'Changes to JOB_ID impact dependent tables and logic'\n        ]\n    }\n\n    # EMP_MANAGER_IX Index\n    summary['EMP_MANAGER_IX'] = {\n        'Purpose': 'Optimizes queries filtering or joining on MANAGER_ID in HR.EMPLOYEES.',\n        'IndexedTable': 'HR.EMPLOYEES',\n        'IndexedColumn': 'MANAGER_ID',\n        'IndexType': 'Standard B-tree',\n        'Options': ['NOLOGGING', 'NOCOMPRESS', 'NOPARALLEL'],\n        'BusinessContext': [\n            'Organizational chart generation',\n            'Management reporting',\n            'Hierarchical queries'\n        ],\n        'Relationships': [\n            'MANAGER_ID is a self-referencing foreign key to EMPLOYEE_ID'\n        ],\n        'Maintenance': [\n            'Rebuild after large data loads or changes to MANAGER_ID'\n        ]\n    }\n\n    # LOC_COUNTRY_IX Index\n    summary['LOC_COUNTRY_IX'] = {\n        'Purpose': 'Optimizes queries on COUNTRY_ID in hr.LOCATIONS.',\n        'IndexedTable': 'hr.LOCATIONS',\n        'IndexedColumn': 'COUNTRY_ID',\n        'IndexType': 'Standard B-tree',\n        'Options': ['NOLOGGING', 'NOCOMPRESS', 'NOPARALLEL'],\n        'BusinessContext': [\n            'Location queries and reports by country',\n            'Supports foreign key relationships with COUNTRIES'\n        ],\n        'Maintenance': [\n            'Rebuild or analyze after large data changes'\n        ]\n    }\n\n    return summary\n```\n\n---\n\n## References\n\n- [DC] hr.emp_department_ix.md\n- [DC] hr.jhist_job_ix.md\n- [DC] hr.jobs.md\n- [DC] hr.emp_manager_ix.md\n- [DC] hr.loc_country_ix.md",
+    "cache_type": "query",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "now rewrite it as a function",
+    "create_time": 1754062121,
+    "update_time": 1754062121,
+    "_id": "hybrid:query:a8ad3f1638afae947acec332d2384cd8"
   }
 }
