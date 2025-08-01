@@ -1,0 +1,86 @@
+import logging
+import numpy as np
+from openai import AzureOpenAI
+from config import Config
+
+logger = logging.getLogger(__name__)
+
+class AzureOpenAIClient:
+    def __init__(self):
+        self.client = AzureOpenAI(
+            api_version=Config.AZURE_OPENAI_API_VERSION,
+            azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
+            api_key=Config.AZURE_OPENAI_API_KEY
+        )
+        self.embedding_client = AzureOpenAI(
+            api_key=Config.AZURE_OPENAI_API_KEY,
+            api_version=Config.AZURE_EMBEDDING_API_VERSION,
+            azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
+        )
+        logger.info("Initialized Azure OpenAI clients")
+    
+    def generate_documentation(self, content: str, system_prompt: str) -> str:
+        """Generate documentation for SQL content"""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": content.strip()}
+        ]
+        
+        response = self.client.chat.completions.create(
+            model=Config.AZURE_OPENAI_DEPLOYMENT,
+            messages=messages,
+            temperature=0,
+            top_p=1,
+            n=1,
+        )
+        
+        return response.choices[0].message.content
+    
+    async def llm_model_func(self, prompt: str, system_prompt: str = None, 
+                           history_messages: list = None, **kwargs) -> str:
+        """Async function for LightRAG LLM calls"""
+        if history_messages is None:
+            history_messages = []
+        
+        # Create client inside function to avoid deepcopy issues
+        client = AzureOpenAI(
+            api_key=Config.AZURE_OPENAI_API_KEY,
+            api_version=Config.AZURE_OPENAI_API_VERSION,
+            azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
+        )
+            
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        if history_messages:
+            messages.extend(history_messages)
+        messages.append({"role": "user", "content": prompt})
+        
+        chat_completion = client.chat.completions.create(
+            model=Config.AZURE_OPENAI_DEPLOYMENT,
+            messages=messages,
+            temperature=kwargs.get("temperature", 0),
+            top_p=kwargs.get("top_p", 1),
+            n=kwargs.get("n", 1),
+        )
+        
+        logger.info("LLM model response generated")
+        return chat_completion.choices[0].message.content
+    
+    async def embedding_func(self, texts: list[str]) -> np.ndarray:
+        """Generate embeddings for texts"""
+        # Create client inside function to avoid deepcopy issues
+        client = AzureOpenAI(
+            api_key=Config.AZURE_OPENAI_API_KEY,
+            api_version=Config.AZURE_EMBEDDING_API_VERSION,
+            azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
+        )
+        
+        embedding = client.embeddings.create(
+            model=Config.AZURE_EMBEDDING_DEPLOYMENT,
+            input=texts
+        )
+        
+        embeddings = [item.embedding for item in embedding.data]
+        logger.info(f"Generated embeddings for {len(texts)} texts")
+        return np.array(embeddings)
