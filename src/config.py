@@ -29,6 +29,10 @@ class Config:
     # Model settings
     EMBEDDING_DIMENSION = 3072  # small 1536, large 3072
     
+    # Token tracking settings
+    ENABLE_TOKEN_TRACKING = os.getenv("ENABLE_TOKEN_TRACKING", "true").lower() == "true"
+    SHOW_TOKEN_USAGE_IN_CHAT = os.getenv("SHOW_TOKEN_USAGE_IN_CHAT", "true").lower() == "true"
+    
     @classmethod
     def validate_neo4j_config(cls):
         """Validate Neo4j configuration"""

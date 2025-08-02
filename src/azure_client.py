@@ -17,6 +17,12 @@ class AzureOpenAIClient:
             api_version=Config.AZURE_EMBEDDING_API_VERSION,
             azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
         )
+        # Token usage tracking
+        self.token_usage = {
+            "total_tokens": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0
+        }
         logger.info("Initialized Azure OpenAI clients")
     
     def generate_documentation(self, content: str, system_prompt: str) -> str:
@@ -34,7 +40,26 @@ class AzureOpenAIClient:
             n=1,
         )
         
+        # Track token usage if available
+        if response.usage and Config.ENABLE_TOKEN_TRACKING:
+            self.token_usage["total_tokens"] += response.usage.total_tokens
+            self.token_usage["prompt_tokens"] += response.usage.prompt_tokens
+            self.token_usage["completion_tokens"] += response.usage.completion_tokens
+            logger.debug(f"Documentation generation used {response.usage.total_tokens} tokens")
+        
         return response.choices[0].message.content
+    
+    def get_token_usage(self) -> dict:
+        """Get current token usage statistics"""
+        return self.token_usage.copy()
+    
+    def reset_token_usage(self):
+        """Reset token usage statistics"""
+        self.token_usage = {
+            "total_tokens": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0
+        }
     
     async def llm_model_func(self, prompt: str, system_prompt: str = None, 
                            history_messages: list = None, **kwargs) -> str:
