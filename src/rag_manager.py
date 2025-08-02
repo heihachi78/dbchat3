@@ -321,22 +321,27 @@ class RAGManager:
         if not self.rag:
             raise RuntimeError("RAG not initialized. Call initialize() first.")
         
-        params = QueryParam(mode=mode)
-        if conversation_history:
-            params.conversation_history = conversation_history
-        
-        # Reset token tracker for this query to get per-query usage
-        if self.enable_token_tracking and track_tokens:
-            self.token_tracker.reset()
-        
-        result = await self.rag.aquery(text, param=params)
-        
-        # Log token usage for this query
-        if self.enable_token_tracking and track_tokens:
-            usage = self.token_tracker.get_usage()
-            logger.info(f"Token usage for query (mode={mode}): {usage}")
-        
-        return result
+        try:
+            params = QueryParam(mode=mode)
+            if conversation_history:
+                params.conversation_history = conversation_history
+            
+            # Reset token tracker for this query to get per-query usage
+            if self.enable_token_tracking and track_tokens:
+                self.token_tracker.reset()
+            
+            result = await self.rag.aquery(text, param=params)
+            
+            # Log token usage for this query
+            if self.enable_token_tracking and track_tokens:
+                usage = self.token_tracker.get_usage()
+                logger.info(f"Token usage for query (mode={mode}): {usage}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error querying in {mode} mode: {e}")
+            return f"Error: {str(e)}"
     
     async def query_all_modes(self, text: str, conversation_history: list = None) -> dict:
         """Query using all available modes and return results"""
