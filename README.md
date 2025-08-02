@@ -72,7 +72,7 @@ The system follows this workflow:
    Neo4j:
    ```bash
    docker run -d --restart always --publish=7474:7474 --publish=7687:7687 \
-     --env NEO4J_AUTH=neo4j/pass4jdbchat \
+     --env NEO4J_AUTH=neo4j/your_neo4j_password \
      --volume=/home/tothi/python/dbchat3/data:/data \
      neo4j:2025.06.2
    ```
@@ -80,8 +80,8 @@ The system follows this workflow:
    MongoDB:
    ```bash
    docker run -d --restart always -p 27017:27017 \
-     -e MONGO_INITDB_ROOT_USERNAME=mongoadmin \
-     -e MONGO_INITDB_ROOT_PASSWORD=mongopass \
+     -e MONGO_INITDB_ROOT_USERNAME=your_mongo_username \
+     -e MONGO_INITDB_ROOT_PASSWORD=your_mongo_password \
      -v /home/tothi/python/dbchat3/mongo-data:/data/db \
      mongo
    ```
@@ -89,7 +89,7 @@ The system follows this workflow:
    **Access Points**:
    - Neo4j Browser: http://localhost:7474
    - Neo4j Bolt: neo4j://localhost:7687
-   - MongoDB: mongodb://mongoadmin:mongopass@localhost:27017/
+   - MongoDB: mongodb://your_mongo_username:your_mongo_password@localhost:27017/
 
 5. **Configure environment variables**:
    ```bash
@@ -116,15 +116,15 @@ AZURE_EMBEDDING_DIMENSION=3072
 ```bash
 NEO4J_URI=neo4j://localhost:7687
 NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=pass4jdbchat
+NEO4J_PASSWORD=your_neo4j_password
 NEO4J_DATABASE=neo4j
 NEO4J_WORKSPACE=default    # Optional workspace name
 ```
 
 ### MongoDB Configuration
 ```bash
-MONGO_USER=mongoadmin
-MONGO_PASS=mongopass
+MONGO_USER=your_mongo_username
+MONGO_PASS=your_mongo_password
 MONGO_URI=mongodb://localhost:27017/
 MONGO_DATABASE=LightRAG
 MONGODB_WORKSPACE=default  # Optional workspace name
