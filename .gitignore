@@ -6,3 +6,4 @@ __pycache__
 *.pyc
 neo4j.md
 data
+working_dir/faiss_index_*.index.meta.json
