@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import datetime
 from src import AzureOpenAIClient, DocumentationProcessor, RAGManager, Config
+from src.token_aggregator import TokenAggregator
 
 # Configure logging
 # Create logs directory if it doesn't exist
@@ -43,20 +44,11 @@ async def process_database_files():
     doc_processor = DocumentationProcessor(azure_client)
     rag_manager = RAGManager()
     
+    # Create token aggregator for unified tracking
+    token_aggregator = TokenAggregator(azure_client, rag_manager)
+    
     # Process SQL files
     doc_processor.process_sql_files()
-    
-    # Report token usage for documentation generation
-    if Config.ENABLE_TOKEN_TRACKING:
-        doc_usage = azure_client.get_token_usage()
-        logger.info(f"Token usage for documentation generation:")
-        logger.info(f"  Total tokens: {doc_usage['total_tokens']}")
-        logger.info(f"  Prompt tokens: {doc_usage['prompt_tokens']}")
-        logger.info(f"  Completion tokens: {doc_usage['completion_tokens']}")
-        print(f"\nDocumentation Generation Token Usage:")
-        print(f"  Total tokens: {doc_usage['total_tokens']}")
-        print(f"  Prompt tokens: {doc_usage['prompt_tokens']}")
-        print(f"  Completion tokens: {doc_usage['completion_tokens']}")
     
     # Clear databases before starting
     logger.info("Clearing Neo4j database...")
@@ -71,31 +63,12 @@ async def process_database_files():
     # Insert documents
     await rag_manager.insert_documents()
     
-    # Report token usage for RAG insertion
+    # Report unified token usage
     if Config.ENABLE_TOKEN_TRACKING:
-        rag_usage = rag_manager.get_token_usage()
-        logger.info(f"Token usage for RAG document insertion:")
-        logger.info(f"  Total tokens: {rag_usage['total_tokens']}")
-        logger.info(f"  Prompt tokens: {rag_usage['prompt_tokens']}")
-        logger.info(f"  Completion tokens: {rag_usage['completion_tokens']}")
-        print(f"\nRAG Document Insertion Token Usage:")
-        print(f"  Total tokens: {rag_usage['total_tokens']}")
-        print(f"  Prompt tokens: {rag_usage['prompt_tokens']}")
-        print(f"  Completion tokens: {rag_usage['completion_tokens']}")
-        
-        # Total usage
-        total_usage = {
-            "total_tokens": doc_usage['total_tokens'] + rag_usage['total_tokens'],
-            "prompt_tokens": doc_usage['prompt_tokens'] + rag_usage['prompt_tokens'],
-            "completion_tokens": doc_usage['completion_tokens'] + rag_usage['completion_tokens']
-        }
-        print(f"\nTotal Token Usage for Processing:")
-        print(f"  Total tokens: {total_usage['total_tokens']}")
-        print(f"  Prompt tokens: {total_usage['prompt_tokens']}")
-        print(f"  Completion tokens: {total_usage['completion_tokens']}")
+        print(token_aggregator.get_summary(detailed=True))
     
     logger.info("Database file processing completed")
-    return rag_manager
+    return rag_manager, token_aggregator
 
 async def run_pipeline():
     """Run RAG pipeline without generating documentation (assumes MD files exist)"""
@@ -115,6 +88,9 @@ async def run_pipeline():
     doc_processor = DocumentationProcessor(None)  # No Azure client needed
     rag_manager = RAGManager()
     
+    # Create token aggregator (only RAG tracking in this mode)
+    token_aggregator = TokenAggregator(rag_manager=rag_manager)
+    
     # Clear databases before starting
     logger.info("Clearing Neo4j database...")
     rag_manager.clear_neo4j_database()
@@ -131,22 +107,14 @@ async def run_pipeline():
     # Insert documents
     await rag_manager.insert_documents()
     
-    # Report token usage for RAG insertion
+    # Report unified token usage  
     if Config.ENABLE_TOKEN_TRACKING:
-        rag_usage = rag_manager.get_token_usage()
-        logger.info(f"Token usage for RAG document insertion:")
-        logger.info(f"  Total tokens: {rag_usage['total_tokens']}")
-        logger.info(f"  Prompt tokens: {rag_usage['prompt_tokens']}")
-        logger.info(f"  Completion tokens: {rag_usage['completion_tokens']}")
-        print(f"\nRAG Document Insertion Token Usage:")
-        print(f"  Total tokens: {rag_usage['total_tokens']}")
-        print(f"  Prompt tokens: {rag_usage['prompt_tokens']}")
-        print(f"  Completion tokens: {rag_usage['completion_tokens']}")
+        print(token_aggregator.get_summary(detailed=True))
     
     logger.info("RAG pipeline completed")
-    return rag_manager
+    return rag_manager, token_aggregator
 
-async def chat_mode(rag_manager=None):
+async def chat_mode(rag_manager=None, token_aggregator=None):
     """Interactive chat mode"""
     # If RAG manager not provided, create one for existing data
     if not rag_manager:
@@ -162,6 +130,10 @@ async def chat_mode(rag_manager=None):
         rag_manager = RAGManager()
         await rag_manager.initialize()
         await rag_manager.insert_documents()
+        
+        # Create token aggregator if not provided
+        if not token_aggregator:
+            token_aggregator = TokenAggregator(rag_manager=rag_manager)
     
     print("\n" + "="*50)
     print("DBChat3 - Interactive Query Mode")
@@ -174,21 +146,21 @@ async def chat_mode(rag_manager=None):
     print("  /mode <mode>      - Change query mode (naive|local|global|hybrid)")
     print("  /clear            - Clear conversation history")
     print("  /history          - Show conversation history")
-    print("  /tokens           - Show current token usage")
+    print("  /tokens           - Show current session token usage")
     print("  /tokens reset     - Reset token counter")
-    print("  /tokens off       - Disable token tracking")
-    print("  /tokens on        - Enable token tracking")
+    print("  /tokens summary   - Show detailed token breakdown")
+    print("  /tokens off       - Disable token tracking display")
+    print("  /tokens on        - Enable token tracking display")
     print("  modes             - Test query with all modes")
     print("="*50 + "\n")
     
     current_mode = "hybrid"  # Default mode
     conversation_history = []  # Store conversation history
+    show_token_usage = True  # Default to showing token usage
     
-    # Initialize session token tracking
-    session_tokens = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}
-    
-    # Reset token tracker for chat session
-    rag_manager.reset_token_tracker()
+    # Enable token tracking by default and reset for chat session
+    rag_manager.set_token_tracking(True)
+    token_aggregator.reset_all()
     
     while True:
         try:
@@ -234,22 +206,20 @@ async def chat_mode(rag_manager=None):
                 parts = query.split()
                 if len(parts) == 1:
                     # Show current session token usage
-                    print(f"\nCurrent Session Token Usage:")
-                    print(f"  Total tokens: {session_tokens['total_tokens']}")
-                    print(f"  Prompt tokens: {session_tokens['prompt_tokens']}")
-                    print(f"  Completion tokens: {session_tokens['completion_tokens']}")
+                    print(token_aggregator.get_summary())
                 elif len(parts) == 2 and parts[1].lower() == 'reset':
-                    session_tokens = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}
-                    rag_manager.reset_token_tracker()
+                    token_aggregator.reset_all()
                     print("Token counter reset.")
+                elif len(parts) == 2 and parts[1].lower() == 'summary':
+                    print(token_aggregator.get_summary(detailed=True))
                 elif len(parts) == 2 and parts[1].lower() == 'off':
-                    rag_manager.set_token_tracking(False)
-                    print("Token tracking disabled.")
+                    show_token_usage = False
+                    print("Token tracking display disabled.")
                 elif len(parts) == 2 and parts[1].lower() == 'on':
-                    rag_manager.set_token_tracking(True)
-                    print("Token tracking enabled.")
+                    show_token_usage = True
+                    print("Token tracking display enabled.")
                 else:
-                    print("Invalid token command. Use: /tokens, /tokens reset, /tokens off, /tokens on")
+                    print("Invalid token command. Use: /tokens, /tokens reset, /tokens summary, /tokens off, /tokens on")
                 continue
             
             if query.lower() == 'modes':
@@ -263,12 +233,12 @@ async def chat_mode(rag_manager=None):
                         print("\n" + "-"*50)
                     
                     # Show token usage for all modes
-                    if rag_manager.enable_token_tracking:
+                    if show_token_usage:
                         usage = rag_manager.get_token_usage()
-                        print(f"\nTotal Token Usage for All Modes:")
-                        print(f"  Total tokens: {usage.get('total_tokens', 0)}")
-                        print(f"  Prompt tokens: {usage.get('prompt_tokens', 0)}")
-                        print(f"  Completion tokens: {usage.get('completion_tokens', 0)}")
+                        print(f"\nToken Usage for All Modes Query:")
+                        print(f"  Total: {usage.get('total_tokens', 0)}, "
+                              f"Prompt: {usage.get('prompt_tokens', 0)}, "
+                              f"Completion: {usage.get('completion_tokens', 0)}")
                 continue
             
             if query:
@@ -284,17 +254,12 @@ async def chat_mode(rag_manager=None):
                 # Add assistant response to conversation history
                 conversation_history.append({"role": "assistant", "content": result})
                 
-                # Show token usage for this query and update session totals
-                if rag_manager.enable_token_tracking and Config.SHOW_TOKEN_USAGE_IN_CHAT:
+                # Show token usage for this query
+                if show_token_usage:
                     usage = rag_manager.get_token_usage()
                     query_total = usage.get('total_tokens', 0)
                     query_prompt = usage.get('prompt_tokens', 0)
                     query_completion = usage.get('completion_tokens', 0)
-                    
-                    # Update session totals
-                    session_tokens['total_tokens'] += query_total
-                    session_tokens['prompt_tokens'] += query_prompt
-                    session_tokens['completion_tokens'] += query_completion
                     
                     print(f"\n[Token usage - Total: {query_total}, "
                           f"Prompt: {query_prompt}, "
@@ -339,18 +304,18 @@ def main():
     
     # Run the appropriate mode
     if args.process_database_files:
-        rag_manager = asyncio.run(process_database_files())
+        rag_manager, token_aggregator = asyncio.run(process_database_files())
         
         # If chat mode also requested, continue with it
         if args.chat:
-            asyncio.run(chat_mode(rag_manager))
+            asyncio.run(chat_mode(rag_manager, token_aggregator))
     
     elif args.run_pipeline:
-        rag_manager = asyncio.run(run_pipeline())
+        rag_manager, token_aggregator = asyncio.run(run_pipeline())
         
         # If chat mode also requested, continue with it
         if args.chat:
-            asyncio.run(chat_mode(rag_manager))
+            asyncio.run(chat_mode(rag_manager, token_aggregator))
     
     elif args.chat:
         asyncio.run(chat_mode())

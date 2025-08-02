@@ -1,4 +1,5 @@
 import logging
+import threading
 import numpy as np
 from .config import Config
 from .azure_factory import get_chat_client, get_embedding_client
@@ -10,12 +11,13 @@ class AzureOpenAIClient:
         # Use shared clients instead of creating new ones
         self.client = get_chat_client()
         self.embedding_client = get_embedding_client()
-        # Token usage tracking
+        # Token usage tracking with thread safety
         self.token_usage = {
             "total_tokens": 0,
             "prompt_tokens": 0,
             "completion_tokens": 0
         }
+        self._token_lock = threading.Lock()
         logger.info("Initialized Azure OpenAI clients")
     
     def generate_documentation(self, content: str, system_prompt: str) -> str:
@@ -33,26 +35,29 @@ class AzureOpenAIClient:
             n=1,
         )
         
-        # Track token usage if available
+        # Track token usage if available (thread-safe)
         if response.usage and Config.ENABLE_TOKEN_TRACKING:
-            self.token_usage["total_tokens"] += response.usage.total_tokens
-            self.token_usage["prompt_tokens"] += response.usage.prompt_tokens
-            self.token_usage["completion_tokens"] += response.usage.completion_tokens
+            with self._token_lock:
+                self.token_usage["total_tokens"] += response.usage.total_tokens
+                self.token_usage["prompt_tokens"] += response.usage.prompt_tokens
+                self.token_usage["completion_tokens"] += response.usage.completion_tokens
             logger.debug(f"Documentation generation used {response.usage.total_tokens} tokens")
         
         return response.choices[0].message.content
     
     def get_token_usage(self) -> dict:
         """Get current token usage statistics"""
-        return self.token_usage.copy()
+        with self._token_lock:
+            return self.token_usage.copy()
     
     def reset_token_usage(self):
         """Reset token usage statistics"""
-        self.token_usage = {
-            "total_tokens": 0,
-            "prompt_tokens": 0,
-            "completion_tokens": 0
-        }
+        with self._token_lock:
+            self.token_usage = {
+                "total_tokens": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0
+            }
     
     async def llm_model_func(self, prompt: str, system_prompt: str = None, 
                            history_messages: list = None, **kwargs) -> str:
