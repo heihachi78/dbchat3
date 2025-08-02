@@ -1,3 +1,5 @@
 faiss*.index filter=lfs diff=lfs merge=lfs -text
 working_dir/faiss_index_relationships.index.meta.json filter=lfs diff=lfs merge=lfs -text
 working_dir/faiss_index_entities.index.meta.json filter=lfs diff=lfs merge=lfs -text
+data/transactions/*/neostore.transaction.db.* filter=lfs diff=lfs merge=lfs -text
+\*.db filter=lfs diff=lfs merge=lfs -text

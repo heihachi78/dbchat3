@@ -5,4 +5,3 @@ logs/
 __pycache__
 *.pyc
 neo4j.md
-data
