@@ -335,7 +335,7 @@ dbchat3/
   - **FAISS**: Provides high-performance vector similarity search
 - Supports multiple embedding and search strategies
 - Maintains conversation context and semantic understanding
-- Clears Neo4j database on initialization for clean state
+- Clears both Neo4j and MongoDB databases on initialization for clean state
 - Automatic storage initialization and management
 
 ### Azure OpenAI Integration
@@ -352,10 +352,10 @@ dbchat3/
   - Monitor token usage with `/tokens` command
   
 - **Database Management**: 
-  - System clears Neo4j database on each initialization
-  - MongoDB data persists between runs
+  - System clears both Neo4j and MongoDB databases on each initialization
   - Use Docker volumes to persist data between container restarts
   - Docker Compose simplifies multi-database setup
+  - Both databases start fresh with each pipeline run
   
 - **Memory Usage**:
   - Large databases may require processing in batches
