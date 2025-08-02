@@ -120,9 +120,13 @@ class DocumentationProcessor:
     
     @retry_sync(**FILE_OPERATION_RETRY_CONFIG)
     def _write_documentation_file(self, file_path: Path, content: str):
-        """Write documentation to file with retry logic"""
+        """Write documentation to file with retry logic
+        
+        Note: mkdir is required here because this writes to the original database
+        directory structure which may have arbitrary subdirectories.
+        """
         try:
-            # Ensure parent directory exists
+            # Ensure parent directory exists (required for database directory structure)
             file_path.parent.mkdir(parents=True, exist_ok=True)
             
             with open(file_path, "w", encoding="utf-8") as f:
@@ -138,12 +142,50 @@ class DocumentationProcessor:
             logger.error(f"Unexpected error writing to {file_path}: {e}")
             raise
     
+    def _ensure_target_directories(self, md_files: list) -> set:
+        """Create all target directories in batch to avoid redundant operations"""
+        target_dirs = set()
+        
+        # Collect all unique target directories
+        for md_file in md_files:
+            target_file = Path(self.working_dir) / md_file.name
+            target_dirs.add(target_file.parent)
+        
+        # Create all directories in one pass
+        failed_dirs = []
+        for target_dir in target_dirs:
+            try:
+                target_dir.mkdir(parents=True, exist_ok=True)
+                logger.debug(f"Ensured directory exists: {target_dir}")
+            except (PermissionError, OSError) as e:
+                logger.error(f"Failed to create directory {target_dir}: {e}")
+                failed_dirs.append(target_dir)
+                
+        if failed_dirs:
+            logger.warning(f"Failed to create {len(failed_dirs)} target directories")
+            
+        return target_dirs - set(failed_dirs)
+    
     def _copy_docs_to_working_dir(self):
         """Copy all markdown files to working directory with comprehensive error handling"""
         failed_copies = []
+        md_files = list(self.database_dir.rglob("*.md"))
         
-        for md_file in self.database_dir.rglob("*.md"):
+        if not md_files:
+            logger.info("No markdown files found to copy")
+            return
+            
+        # Create all target directories upfront
+        successful_dirs = self._ensure_target_directories(md_files)
+        
+        for md_file in md_files:
             target_file = Path(self.working_dir) / md_file.name
+            
+            # Skip if target directory creation failed
+            if target_file.parent not in successful_dirs:
+                logger.error(f"Skipping {md_file} - target directory creation failed")
+                failed_copies.append(md_file)
+                continue
             
             try:
                 self._copy_single_file(md_file, target_file)
@@ -158,11 +200,8 @@ class DocumentationProcessor:
     
     @retry_sync(**FILE_OPERATION_RETRY_CONFIG)
     def _copy_single_file(self, source_file: Path, target_file: Path):
-        """Copy a single file with retry logic"""
+        """Copy a single file with retry logic - assumes target directory already exists"""
         try:
-            # Ensure target directory exists
-            target_file.parent.mkdir(parents=True, exist_ok=True)
-            
             # Read source file content
             content = source_file.read_text(encoding="utf-8")
             
