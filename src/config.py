@@ -21,6 +21,13 @@ class Config:
     NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
     NEO4J_WORKSPACE = os.getenv("NEO4J_WORKSPACE")
     
+    # MongoDB settings
+    MONGO_USER = os.getenv("MONGO_USER")
+    MONGO_PASS = os.getenv("MONGO_PASS")
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+    MONGO_DATABASE = os.getenv("MONGO_DATABASE", "LightRAG")
+    MONGODB_WORKSPACE = os.getenv("MONGODB_WORKSPACE")
+    
     # Directories
     DATABASE_FILES_DIR = Path("database_files")
     WORKING_DIR = Path("working_dir")
@@ -61,10 +68,24 @@ class Config:
             raise ValueError(f"NEO4J_URI must use one of these schemes: {valid_schemes}")
     
     @classmethod
+    def validate_mongo_config(cls):
+        """Validate MongoDB configuration"""
+        if not cls.MONGO_URI:
+            raise ValueError("MONGO_URI environment variable must be set")
+        
+        # Basic MongoDB URI validation
+        if not cls.MONGO_URI.startswith('mongodb://') and not cls.MONGO_URI.startswith('mongodb+srv://'):
+            raise ValueError("MONGO_URI must start with 'mongodb://' or 'mongodb+srv://'")
+        
+        if not cls.MONGO_DATABASE:
+            raise ValueError("MONGO_DATABASE must be specified")
+    
+    @classmethod
     def validate_all_config(cls):
         """Validate all configuration"""
         cls.validate_azure_config()
         cls.validate_neo4j_config()
+        cls.validate_mongo_config()
     
     # Documentation system prompt
     SYSTEM_PROMPT = """

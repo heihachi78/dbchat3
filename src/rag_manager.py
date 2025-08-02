@@ -114,13 +114,15 @@ class RAGManager:
             raise
     
     async def initialize(self):
-        """Initialize LightRAG with Azure OpenAI functions and Neo4j storage"""
-        # Validate Neo4j configuration
+        """Initialize LightRAG with Azure OpenAI functions, Neo4j graph storage, and MongoDB KV/doc status storage"""
+        # Validate configurations
         try:
             Config.validate_neo4j_config()
             logger.info("Neo4j configuration validated successfully")
+            Config.validate_mongo_config()
+            logger.info("MongoDB configuration validated successfully")
         except ValueError as e:
-            logger.error(f"Neo4j configuration error: {e}")
+            logger.error(f"Configuration error: {e}")
             raise
         
         try:
@@ -134,14 +136,16 @@ class RAGManager:
                 ),
                 vector_storage="FaissVectorDBStorage",
                 graph_storage="Neo4JStorage",
+                kv_storage="MongoKVStorage",
+                doc_status_storage="MongoDocStatusStorage",
             )
             
-            logger.info("Initialized LightRAG with direct Azure OpenAI and Neo4j graph storage")
+            logger.info("Initialized LightRAG with Azure OpenAI, Neo4j graph storage, and MongoDB KV/doc status storage")
             
             await self.rag.initialize_storages()
             await initialize_pipeline_status()
         except Exception as e:
-            logger.error(f"Failed to initialize LightRAG with Neo4j: {e}")
+            logger.error(f"Failed to initialize LightRAG: {e}")
             raise
     
     async def insert_documents(self):

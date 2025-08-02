@@ -32,6 +32,13 @@ docker run -d --restart always --publish=7474:7474 --publish=7687:7687 \
   --env NEO4J_AUTH=neo4j/pass4jdbchat \
   --volume=/home/tothi/python/dbchat3/data:/data \
   neo4j:2025.06.2
+
+# Run MongoDB locally with Docker
+docker run -d --restart always -p 27017:27017 \
+  -e MONGO_INITDB_ROOT_USERNAME=mongoadmin \
+  -e MONGO_INITDB_ROOT_PASSWORD=mongopass \
+  -v /home/tothi/python/dbchat3/data:/data \
+  mongo
 ```
 
 ## High-Level Architecture
@@ -46,7 +53,9 @@ docker run -d --restart always --publish=7474:7474 --publish=7687:7687 \
    - Can skip generation if MD files already exist (`--run_pipeline` flag)
 
 2. **RAG System** (`src/rag_manager.py`): Built on LightRAG for knowledge graph-based querying
-   - Uses Neo4j as graph storage backend for enhanced performance
+   - Uses Neo4j as graph storage backend for relationship data
+   - Uses MongoDB for key-value storage and document status tracking
+   - Uses FAISS for high-performance vector storage and semantic search
    - Initializes storage and pipeline in `working_dir/`
    - Supports multiple query modes: naive, local, global, and hybrid
    - Uses Azure text-embedding-3-large for semantic search
@@ -75,9 +84,12 @@ docker run -d --restart always --publish=7474:7474 --publish=7687:7687 \
    - Copies processed docs to `working_dir/` for RAG ingestion
 
 2. **RAG Initialization**:
-   - Clears Neo4j database to ensure clean state
+   - Clears Neo4j database to ensure clean state for graph data
    - Creates LightRAG instance with Azure OpenAI functions
-   - Initializes vector storage (FAISS) and knowledge graph in `working_dir/`
+   - Initializes hybrid storage architecture:
+     - FAISS for vector storage in `working_dir/`
+     - Neo4j for knowledge graph relationships
+     - MongoDB for key-value data and document status
    - Inserts all markdown documentation into RAG storage
    - Builds knowledge graph for semantic relationships
 
@@ -114,7 +126,18 @@ Required environment variables in `.env`:
 - `NEO4J_DATABASE` (default: "neo4j")
 - `NEO4J_WORKSPACE` (optional)
 
-**Note**: LightRAG uses Neo4j Community Edition with the default database. The system is configured to use `graph_storage="Neo4JStorage"` with explicit connection parameters to ensure compatibility with Community Edition, which doesn't support creating new databases.
+### MongoDB Configuration
+- `MONGO_USER` (required)
+- `MONGO_PASS` (required)
+- `MONGO_URI` (default: "mongodb://localhost:27017/")
+- `MONGO_DATABASE` (default: "LightRAG")
+- `MONGODB_WORKSPACE` (optional)
+
+**Note**: LightRAG uses Neo4j Community Edition with the default database for graph storage. MongoDB is used for key-value storage and document status tracking. The system is configured with:
+- `graph_storage="Neo4JStorage"` for relationship data
+- `kv_storage="MongoKVStorage"` for key-value operations
+- `doc_status_storage="MongoDocStatusStorage"` for document processing status
+- `vector_storage="FaissVectorDBStorage"` for semantic search
 
 ### Optional Settings
 - `LOG_DIR` (optional, defaults to "logs")
@@ -125,8 +148,11 @@ Required environment variables in `.env`:
 
 ## Important Patterns
 
-- **Neo4j Graph Storage**: Uses Neo4j instead of NetworkX for better performance and scalability
-- **Configuration Validation**: Validates Neo4j connection settings on startup
+- **Hybrid Storage Architecture**: Uses specialized storage for each data type
+  - Neo4j: Graph relationships and knowledge graph data
+  - MongoDB: Key-value storage and document processing status
+  - FAISS: High-performance vector embeddings and semantic search
+- **Configuration Validation**: Validates Neo4j and MongoDB connection settings on startup
 - **Embedding Dimension**: Set to 3072 for text-embedding-3-large (was 3072 for small, 3072 for large)
 - **Comprehensive Logging**: File and console logging with timestamps
 - **Error Handling**: Robust error handling for file operations and API calls
@@ -136,8 +162,9 @@ Required environment variables in `.env`:
 - **Comprehensive System Prompt**: Detailed instructions for thorough documentation extraction
 - **Token Tracking**: Built-in token usage tracking using LightRAG's TokenTracker utility
 
-## Neo4j Setup
+## Database Setup
 
+### Neo4j Setup
 To run Neo4j locally using Docker (from neo4j.md):
 
 ```bash
@@ -150,6 +177,20 @@ docker run -d --restart always --publish=7474:7474 --publish=7687:7687 \
 - Neo4j Browser: http://localhost:7474
 - Bolt connection: neo4j://localhost:7687
 - Default credentials: neo4j/pass4jdbchat
+
+### MongoDB Setup
+To run MongoDB locally using Docker (from mongo.md):
+
+```bash
+docker run -d --restart always -p 27017:27017 \
+  -e MONGO_INITDB_ROOT_USERNAME=mongoadmin \
+  -e MONGO_INITDB_ROOT_PASSWORD=mongopass \
+  -v /home/tothi/python/dbchat3/data:/data \
+  mongo
+```
+
+- MongoDB connection: mongodb://mongoadmin:mongopass@localhost:27017/
+- Default credentials: mongoadmin/mongopass
 
 ## Interactive Chat Commands
 
