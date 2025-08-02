@@ -9,6 +9,14 @@ from neo4j import GraphDatabase
 
 logger = logging.getLogger(__name__)
 
+# Global token tracker for standalone functions
+_global_token_tracker = None
+
+def set_global_token_tracker(tracker):
+    """Set the global token tracker for standalone functions"""
+    global _global_token_tracker
+    _global_token_tracker = tracker
+
 # Standalone functions for LightRAG to avoid deepcopy issues
 async def llm_model_func(prompt: str, system_prompt: str = None, 
                        history_messages: list = None, **kwargs) -> str:
@@ -37,6 +45,17 @@ async def llm_model_func(prompt: str, system_prompt: str = None,
         n=kwargs.get("n", 1),
     )
     
+    # Track token usage if global tracker is available and enabled
+    global _global_token_tracker
+    if _global_token_tracker and Config.ENABLE_TOKEN_TRACKING and chat_completion.usage:
+        usage = chat_completion.usage
+        _global_token_tracker.add_usage({
+            'prompt_tokens': usage.prompt_tokens,
+            'completion_tokens': usage.completion_tokens,
+            'total_tokens': usage.total_tokens
+        })
+        logger.debug(f"LLM tracked {usage.total_tokens} tokens")
+    
     logger.info("LLM model response generated")
     return chat_completion.choices[0].message.content
 
@@ -53,6 +72,17 @@ async def embedding_func(texts: list[str]) -> np.ndarray:
         input=texts
     )
     
+    # Track token usage if global tracker is available and enabled
+    global _global_token_tracker
+    if _global_token_tracker and Config.ENABLE_TOKEN_TRACKING and embedding.usage:
+        usage = embedding.usage
+        _global_token_tracker.add_usage({
+            'prompt_tokens': usage.prompt_tokens,
+            'completion_tokens': 0,  # Embeddings don't have completion tokens
+            'total_tokens': usage.total_tokens
+        })
+        logger.debug(f"Embedding tracked {usage.total_tokens} tokens")
+    
     embeddings = [item.embedding for item in embedding.data]
     logger.info(f"Generated embeddings for {len(texts)} texts")
     return np.array(embeddings)
@@ -63,6 +93,8 @@ class RAGManager:
         self.rag = None
         self.token_tracker = TokenTracker()
         self.enable_token_tracking = Config.ENABLE_TOKEN_TRACKING
+        # Set the global token tracker for standalone functions
+        set_global_token_tracker(self.token_tracker)
     
     def clear_neo4j_database(self):
         """Clear all data from Neo4j database"""
@@ -150,15 +182,16 @@ class RAGManager:
         if conversation_history:
             params.conversation_history = conversation_history
         
-        # Use context manager for token tracking if enabled
+        # Reset token tracker for this query to get per-query usage
         if self.enable_token_tracking and track_tokens:
-            with self.token_tracker:
-                result = await self.rag.aquery(text, param=params)
-            # Get token usage for this query
+            self.token_tracker.reset()
+        
+        result = await self.rag.aquery(text, param=params)
+        
+        # Log token usage for this query
+        if self.enable_token_tracking and track_tokens:
             usage = self.token_tracker.get_usage()
             logger.info(f"Token usage for query (mode={mode}): {usage}")
-        else:
-            result = await self.rag.aquery(text, param=params)
         
         return result
     

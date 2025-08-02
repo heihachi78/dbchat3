@@ -149,6 +149,9 @@ async def chat_mode(rag_manager=None):
     current_mode = "hybrid"  # Default mode
     conversation_history = []  # Store conversation history
     
+    # Initialize session token tracking
+    session_tokens = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}
+    
     # Reset token tracker for chat session
     rag_manager.reset_token_tracker()
     
@@ -195,13 +198,13 @@ async def chat_mode(rag_manager=None):
             if query.lower().startswith('/tokens'):
                 parts = query.split()
                 if len(parts) == 1:
-                    # Show current token usage
-                    usage = rag_manager.get_token_usage()
-                    print(f"\nCurrent Token Usage:")
-                    print(f"  Total tokens: {usage.get('total_tokens', 0)}")
-                    print(f"  Prompt tokens: {usage.get('prompt_tokens', 0)}")
-                    print(f"  Completion tokens: {usage.get('completion_tokens', 0)}")
+                    # Show current session token usage
+                    print(f"\nCurrent Session Token Usage:")
+                    print(f"  Total tokens: {session_tokens['total_tokens']}")
+                    print(f"  Prompt tokens: {session_tokens['prompt_tokens']}")
+                    print(f"  Completion tokens: {session_tokens['completion_tokens']}")
                 elif len(parts) == 2 and parts[1].lower() == 'reset':
+                    session_tokens = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}
                     rag_manager.reset_token_tracker()
                     print("Token counter reset.")
                 elif len(parts) == 2 and parts[1].lower() == 'off':
@@ -246,12 +249,21 @@ async def chat_mode(rag_manager=None):
                 # Add assistant response to conversation history
                 conversation_history.append({"role": "assistant", "content": result})
                 
-                # Show token usage for this query
+                # Show token usage for this query and update session totals
                 if rag_manager.enable_token_tracking and Config.SHOW_TOKEN_USAGE_IN_CHAT:
                     usage = rag_manager.get_token_usage()
-                    print(f"\n[Token usage - Total: {usage.get('total_tokens', 0)}, "
-                          f"Prompt: {usage.get('prompt_tokens', 0)}, "
-                          f"Completion: {usage.get('completion_tokens', 0)}]")
+                    query_total = usage.get('total_tokens', 0)
+                    query_prompt = usage.get('prompt_tokens', 0)
+                    query_completion = usage.get('completion_tokens', 0)
+                    
+                    # Update session totals
+                    session_tokens['total_tokens'] += query_total
+                    session_tokens['prompt_tokens'] += query_prompt
+                    session_tokens['completion_tokens'] += query_completion
+                    
+                    print(f"\n[Token usage - Total: {query_total}, "
+                          f"Prompt: {query_prompt}, "
+                          f"Completion: {query_completion}]")
         
         except KeyboardInterrupt:
             print("\n\nGoodbye!")
