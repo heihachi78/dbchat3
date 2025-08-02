@@ -39,9 +39,6 @@ jsonpickle==4.1.1
 jupyter_client==8.6.3
 jupyter_core==5.8.1
 lightrag-hku==1.4.4
-llama-index-core>=0.10.0
-llama-index-llms-azure-openai>=0.1.0
-llama-index-embeddings-azure-openai>=0.1.0
 MarkupSafe==3.0.2
 neo4j>=5.0.0
 matplotlib-inline==0.1.7

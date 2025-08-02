@@ -33,10 +33,6 @@ class Config:
     ENABLE_TOKEN_TRACKING = os.getenv("ENABLE_TOKEN_TRACKING", "true").lower() == "true"
     SHOW_TOKEN_USAGE_IN_CHAT = os.getenv("SHOW_TOKEN_USAGE_IN_CHAT", "true").lower() == "true"
     
-    # LlamaIndex integration settings
-    USE_LLAMAINDEX = os.getenv("USE_LLAMAINDEX", "false").lower() == "true"
-    LLAMAINDEX_FALLBACK_TO_DIRECT = os.getenv("LLAMAINDEX_FALLBACK_TO_DIRECT", "true").lower() == "true"
-    
     @classmethod
     def validate_azure_config(cls):
         """Validate required Azure OpenAI configuration"""

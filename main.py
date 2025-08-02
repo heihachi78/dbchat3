@@ -24,14 +24,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-async def process_database_files(use_llamaindex=False):
+async def process_database_files():
     """Process all database files and build RAG index"""
     logger.info("Starting database file processing...")
     
     # Initialize components
     azure_client = AzureOpenAIClient()
     doc_processor = DocumentationProcessor(azure_client)
-    rag_manager = RAGManager(use_llamaindex=use_llamaindex)
+    rag_manager = RAGManager()
     
     # Process SQL files
     doc_processor.process_sql_files()
@@ -84,13 +84,13 @@ async def process_database_files(use_llamaindex=False):
     logger.info("Database file processing completed")
     return rag_manager
 
-async def run_pipeline(use_llamaindex=False):
+async def run_pipeline():
     """Run RAG pipeline without generating documentation (assumes MD files exist)"""
     logger.info("Starting RAG pipeline (skipping documentation generation)...")
     
     # Initialize components
     doc_processor = DocumentationProcessor(None)  # No Azure client needed
-    rag_manager = RAGManager(use_llamaindex=use_llamaindex)
+    rag_manager = RAGManager()
     
     # Clear Neo4j database before starting
     logger.info("Clearing Neo4j database...")
@@ -120,11 +120,11 @@ async def run_pipeline(use_llamaindex=False):
     logger.info("RAG pipeline completed")
     return rag_manager
 
-async def chat_mode(rag_manager=None, use_llamaindex=False):
+async def chat_mode(rag_manager=None):
     """Interactive chat mode"""
     # If RAG manager not provided, create one for existing data
     if not rag_manager:
-        rag_manager = RAGManager(use_llamaindex=use_llamaindex)
+        rag_manager = RAGManager()
         await rag_manager.initialize()
         await rag_manager.insert_documents()
     
@@ -294,11 +294,6 @@ def main():
         action="store_true",
         help="Interactive chat mode for querying database documentation"
     )
-    parser.add_argument(
-        "--use_llamaindex",
-        action="store_true",
-        help="Use LlamaIndex for embedding generation instead of direct Azure OpenAI"
-    )
     
     args = parser.parse_args()
     
@@ -309,21 +304,21 @@ def main():
     
     # Run the appropriate mode
     if args.process_database_files:
-        rag_manager = asyncio.run(process_database_files(use_llamaindex=args.use_llamaindex))
+        rag_manager = asyncio.run(process_database_files())
         
         # If chat mode also requested, continue with it
         if args.chat:
-            asyncio.run(chat_mode(rag_manager, use_llamaindex=args.use_llamaindex))
+            asyncio.run(chat_mode(rag_manager))
     
     elif args.run_pipeline:
-        rag_manager = asyncio.run(run_pipeline(use_llamaindex=args.use_llamaindex))
+        rag_manager = asyncio.run(run_pipeline())
         
         # If chat mode also requested, continue with it
         if args.chat:
-            asyncio.run(chat_mode(rag_manager, use_llamaindex=args.use_llamaindex))
+            asyncio.run(chat_mode(rag_manager))
     
     elif args.chat:
-        asyncio.run(chat_mode(use_llamaindex=args.use_llamaindex))
+        asyncio.run(chat_mode())
 
 if __name__ == "__main__":
     main()

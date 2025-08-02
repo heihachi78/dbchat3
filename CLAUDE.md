@@ -27,8 +27,11 @@ python main.py --run_pipeline
 # Run pipeline and start chat
 python main.py --run_pipeline --chat
 
-# Run in Jupyter notebook
-jupyter notebook dbchat3.ipynb
+# Run Neo4j locally with Docker
+docker run -d --restart always --publish=7474:7474 --publish=7687:7687 \
+  --env NEO4J_AUTH=neo4j/pass4jdbchat \
+  --volume=/home/tothi/python/dbchat3/data:/data \
+  neo4j:2025.06.2
 ```
 
 ## High-Level Architecture
@@ -168,7 +171,8 @@ dbchat3/
 ├── main.py                 # Main entry point with CLI argument parsing
 ├── src/
 │   ├── __init__.py        # Module initialization
-│   ├── azure_client.py    # Azure OpenAI client wrapper
+│   ├── azure_client.py    # Azure OpenAI client wrapper (standalone async functions)
+│   ├── azure_factory.py   # Factory for creating Azure OpenAI clients
 │   ├── config.py          # Configuration and environment management
 │   ├── documentation_processor.py  # SQL to Markdown conversion
 │   └── rag_manager.py     # LightRAG integration and query handling
@@ -182,7 +186,9 @@ dbchat3/
 ├── data/                 # Neo4j database files
 ├── requirements.txt      # Python dependencies
 ├── .env.sample          # Environment template
-└── neo4j.md            # Neo4j Docker setup
+├── README.md             # Project documentation
+├── neo4j.md             # Neo4j Docker setup
+└── review.md            # Code review notes
 
 ## Token Usage Tracking
 
@@ -275,4 +281,12 @@ This feature helps monitor API costs and optimize queries for efficiency.
 ## Usage Warnings
 
 - **Cost Optimization**: 
-  - Never run the `--run_pipeline` and the `--process_database_files` together, as it takes a lot of time and uses a paid endpoint
+  - Never run `--run_pipeline` and `--process_database_files` together, as it duplicates processing and wastes API tokens
+  - Use `--run_pipeline` when markdown files already exist to skip regeneration
+  - Monitor token usage with `/tokens` command in chat mode
+- **Neo4j Database**: 
+  - The system clears the Neo4j database on each initialization to ensure clean state
+  - Use Docker volume mounts to persist Neo4j data between container restarts
+- **Memory Usage**:
+  - Large databases may require processing in batches
+  - FAISS indexes are loaded into memory during operation
