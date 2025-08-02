@@ -9,7 +9,10 @@ DBChat3 combines Azure OpenAI services with LightRAG to create an intelligent da
 ## Features
 
 - **Automatic Documentation Generation**: Converts SQL DDL files into comprehensive markdown documentation using Azure OpenAI (GPT-4)
-- **Neo4j Graph Storage**: Enhanced performance and scalability with Neo4j as the knowledge graph backend
+- **Hybrid Storage Architecture**: 
+  - Neo4j for knowledge graph relationships
+  - MongoDB for key-value storage and document status tracking
+  - FAISS for high-performance vector search
 - **RAG-Powered Querying**: Query your database schema using natural language with multiple search modes
 - **Multi-Modal Search**: Supports naive, local, global, and hybrid search modes
 - **Schema Analysis**: Provides detailed analysis of tables, views, indexes, functions, and relationships
@@ -23,7 +26,10 @@ The system follows this workflow:
 
 1. **Input Processing**: Reads SQL DDL files from the `database_files` directory
 2. **Documentation Generation**: Uses Azure OpenAI to generate detailed markdown documentation for each SQL object
-3. **Knowledge Graph Building**: Processes documentation through LightRAG to build a knowledge graph in Neo4j
+3. **Knowledge Graph Building**: Processes documentation through LightRAG with hybrid storage:
+   - Neo4j stores relationship graph data
+   - MongoDB manages document status and key-value data
+   - FAISS handles vector embeddings for semantic search
 4. **Query Interface**: Enables natural language queries with multiple search strategies and conversation history
 
 ## Prerequisites
@@ -33,7 +39,8 @@ The system follows this workflow:
 - GPT-4 deployment for text generation
 - Text embedding model deployment (text-embedding-3-large)
 - Neo4j database (Community Edition supported)
-- Docker (optional, for running Neo4j locally)
+- MongoDB database for key-value storage
+- Docker (recommended for running Neo4j and MongoDB locally)
 
 ## Installation
 
@@ -54,15 +61,35 @@ The system follows this workflow:
    pip install -r requirements.txt
    ```
 
-4. **Set up Neo4j** (using Docker):
+4. **Set up databases using Docker Compose** (recommended):
+   ```bash
+   docker-compose up -d
+   ```
+   This will start both Neo4j and MongoDB with the correct configuration.
+   
+   **Or manually run each database**:
+   
+   Neo4j:
    ```bash
    docker run -d --restart always --publish=7474:7474 --publish=7687:7687 \
      --env NEO4J_AUTH=neo4j/pass4jdbchat \
      --volume=/home/tothi/python/dbchat3/data:/data \
      neo4j:2025.06.2
    ```
+   
+   MongoDB:
+   ```bash
+   docker run -d --restart always -p 27017:27017 \
+     -e MONGO_INITDB_ROOT_USERNAME=mongoadmin \
+     -e MONGO_INITDB_ROOT_PASSWORD=mongopass \
+     -v /home/tothi/python/dbchat3/mongo-data:/data/db \
+     mongo
+   ```
+   
+   **Access Points**:
    - Neo4j Browser: http://localhost:7474
-   - Bolt connection: neo4j://localhost:7687
+   - Neo4j Bolt: neo4j://localhost:7687
+   - MongoDB: mongodb://mongoadmin:mongopass@localhost:27017/
 
 5. **Configure environment variables**:
    ```bash
@@ -91,6 +118,16 @@ NEO4J_URI=neo4j://localhost:7687
 NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=pass4jdbchat
 NEO4J_DATABASE=neo4j
+NEO4J_WORKSPACE=default    # Optional workspace name
+```
+
+### MongoDB Configuration
+```bash
+MONGO_USER=mongoadmin
+MONGO_PASS=mongopass
+MONGO_URI=mongodb://localhost:27017/
+MONGO_DATABASE=LightRAG
+MONGODB_WORKSPACE=default  # Optional workspace name
 ```
 
 ### Token Tracking Settings
@@ -269,15 +306,18 @@ dbchat3/
 │   └── sampledb/         # Sample database with HR schema
 ├── working_dir/          # Generated docs and RAG storage
 │   ├── *.md              # Processed documentation
-│   ├── faiss_index_*.index  # Vector indexes
-│   └── kv_store_*.json   # Document stores
+│   ├── faiss_index_*.index  # FAISS vector indexes
+│   └── kv_store_*.json   # Local cache files
 ├── data/                 # Neo4j database files
+├── mongo-data/           # MongoDB database files
 ├── logs/                 # Application logs
 ├── requirements.txt      # Python dependencies
 ├── .env.sample          # Environment template
+├── docker-compose.yml   # Docker Compose configuration
 ├── README.md             # This file
 ├── CLAUDE.md            # AI assistant instructions
-└── neo4j.md             # Neo4j setup guide
+├── neo4j.md             # Neo4j setup guide
+└── mongo.md             # MongoDB setup guide
 ```
 
 ## Key Components
@@ -289,11 +329,14 @@ dbchat3/
 - Tracks token usage for cost monitoring
 
 ### RAG System
-- Built on LightRAG for advanced knowledge graph capabilities
-- Uses Neo4j for scalable graph storage and querying
+- Built on LightRAG with hybrid storage architecture:
+  - **Neo4j**: Stores knowledge graph relationships and entity connections
+  - **MongoDB**: Manages document processing status and key-value operations
+  - **FAISS**: Provides high-performance vector similarity search
 - Supports multiple embedding and search strategies
 - Maintains conversation context and semantic understanding
 - Clears Neo4j database on initialization for clean state
+- Automatic storage initialization and management
 
 ### Azure OpenAI Integration
 - GPT-4 for high-quality documentation generation
@@ -308,9 +351,11 @@ dbchat3/
   - Use `--run_pipeline` when markdown files already exist
   - Monitor token usage with `/tokens` command
   
-- **Neo4j Database**: 
+- **Database Management**: 
   - System clears Neo4j database on each initialization
-  - Use Docker volumes to persist data between restarts
+  - MongoDB data persists between runs
+  - Use Docker volumes to persist data between container restarts
+  - Docker Compose simplifies multi-database setup
   
 - **Memory Usage**:
   - Large databases may require processing in batches
@@ -323,10 +368,12 @@ Key dependencies include:
 - `lightrag-hku`: Advanced RAG framework with knowledge graph support
 - `openai`: Azure OpenAI client library
 - `neo4j`: Neo4j Python driver for graph database
+- `motor`: Async MongoDB driver for Python
+- `pymongo`: MongoDB Python driver
 - `numpy`: Numerical computing for embeddings
 - `asyncio`: Asynchronous programming support
 - `python-dotenv`: Environment variable management
-- `faiss-cpu`: Vector similarity search
+- `faiss-cpu`: High-performance vector similarity search
 
 ## Troubleshooting
 
@@ -334,7 +381,11 @@ Key dependencies include:
 
 1. **API Key Issues**: Ensure your Azure OpenAI credentials are correctly set in `.env`
 2. **Model Availability**: Verify your deployments match the model names in configuration
-3. **Neo4j Connection**: Check Neo4j is running and credentials are correct
+3. **Database Connections**: 
+   - Check Neo4j is running and accessible at port 7687
+   - Verify MongoDB is running at port 27017
+   - Ensure credentials match those in `.env` file
+   - Use `docker-compose ps` to check container status
 4. **File Permissions**: Ensure read/write access to working directories
 5. **Memory Issues**: Large databases may require chunking or batch processing
 
@@ -362,7 +413,10 @@ Comprehensive logging is available:
 For issues and questions:
 - Check the troubleshooting section
 - Review Azure OpenAI documentation
-- Review Neo4j setup in `neo4j.md`
+- Review database setup:
+  - Neo4j setup in `neo4j.md`
+  - MongoDB setup in `mongo.md`
+  - Docker Compose configuration
 - Open an issue in the repository
 
 ---
