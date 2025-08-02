@@ -34,6 +34,22 @@ class Config:
     SHOW_TOKEN_USAGE_IN_CHAT = os.getenv("SHOW_TOKEN_USAGE_IN_CHAT", "true").lower() == "true"
     
     @classmethod
+    def validate_azure_config(cls):
+        """Validate required Azure OpenAI configuration"""
+        required_configs = [
+            ('AZURE_OPENAI_API_KEY', cls.AZURE_OPENAI_API_KEY),
+            ('AZURE_OPENAI_ENDPOINT', cls.AZURE_OPENAI_ENDPOINT),
+            ('AZURE_OPENAI_API_VERSION', cls.AZURE_OPENAI_API_VERSION),
+            ('AZURE_OPENAI_DEPLOYMENT', cls.AZURE_OPENAI_DEPLOYMENT),
+            ('AZURE_EMBEDDING_DEPLOYMENT', cls.AZURE_EMBEDDING_DEPLOYMENT),
+            ('AZURE_EMBEDDING_API_VERSION', cls.AZURE_EMBEDDING_API_VERSION),
+        ]
+        
+        missing_configs = [name for name, value in required_configs if not value]
+        if missing_configs:
+            raise ValueError(f"Missing required Azure configuration: {', '.join(missing_configs)}")
+    
+    @classmethod
     def validate_neo4j_config(cls):
         """Validate Neo4j configuration"""
         if not cls.NEO4J_PASSWORD:
@@ -43,6 +59,12 @@ class Config:
         valid_schemes = ['bolt', 'bolt+ssc', 'bolt+s', 'neo4j', 'neo4j+ssc', 'neo4j+s']
         if not any(cls.NEO4J_URI.startswith(scheme + '://') for scheme in valid_schemes):
             raise ValueError(f"NEO4J_URI must use one of these schemes: {valid_schemes}")
+    
+    @classmethod
+    def validate_all_config(cls):
+        """Validate all configuration"""
+        cls.validate_azure_config()
+        cls.validate_neo4j_config()
     
     # Documentation system prompt
     SYSTEM_PROMPT = """

@@ -2780,5 +2780,31 @@
     "create_time": 1754132191,
     "update_time": 1754132191,
     "_id": "hybrid:query:99ab39092014a2ea6d8c2fecc76724f3"
+  },
+  "hybrid:keywords:aa15d1436934da8b5abb117d78c1333a": {
+    "return": "{\"high_level_keywords\": [\"Database management\", \"Data organization\"], \"low_level_keywords\": [\"Tables\", \"List\", \"Database schema\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "list all the tables",
+    "create_time": 1754138824,
+    "update_time": 1754138824,
+    "_id": "hybrid:keywords:aa15d1436934da8b5abb117d78c1333a"
+  },
+  "hybrid:query:aa15d1436934da8b5abb117d78c1333a": {
+    "return": "## List of All Tables in the HR Schema\n\nBelow is a summary of all the tables described in the HR schema, along with their primary purposes and relationships:\n\n### 1. HR.EMPLOYEES\n- **Purpose:** Stores comprehensive information about employees, including personal details, job assignments, compensation, reporting structure, and departmental affiliations.\n- **Key Relationships:** References HR.DEPARTMENTS (via DEPARTMENT_ID) and HR.JOBS (via JOB_ID). Tracks managers through MANAGER_ID, which is a self-referencing foreign key.\n- **Usage:** Central to employee management, payroll, organizational hierarchy, and HR reporting.\n- **Reference:** [KG] hr.employees.md\n\n### 2. HR.DEPARTMENTS\n- **Purpose:** Captures metadata for organizational departments, including department name, manager, and location.\n- **Key Relationships:** References HR.EMPLOYEES (for manager assignment) and HR.LOCATIONS (for physical location).\n- **Usage:** Supports employee assignment, organizational hierarchy, reporting, and resource allocation.\n- **Reference:** [KG] hr.departments.md\n\n### 3. HR.JOB_HISTORY\n- **Purpose:** Records the historical job assignments of employees, including roles, departments, and employment periods.\n- **Key Relationships:** References HR.EMPLOYEES and HR.DEPARTMENTS.\n- **Usage:** Supports audit trails, HR analytics, and reporting on employment history.\n- **Reference:** [KG] hr.job_history.md\n\n### 4. HR.JOBS\n- **Purpose:** Master reference for all job roles, defining job titles, unique identifiers, and salary ranges.\n- **Key Relationships:** Referenced by HR.EMPLOYEES (via JOB_ID).\n- **Usage:** Used for job assignment, compensation management, and reporting.\n- **Reference:** [KG] hr.jobs.md\n\n### 5. HR.LOCATIONS\n- **Purpose:** Stores detailed information about physical company sites (offices, warehouses, etc.), including address and country.\n- **Key Relationships:** References HR.COUNTRIES (via COUNTRY_ID). Referenced by HR.DEPARTMENTS (via LOCATION_ID).\n- **Usage:** Supports logistics, employee assignments, and regional reporting.\n- **Reference:** [KG] hr.locations.md\n\n### 6. HR.COUNTRIES\n- **Purpose:** Master reference for country data, including country identifiers and region associations.\n- **Key Relationships:** References HR.REGIONS (via REGION_ID). Referenced by HR.LOCATIONS (via COUNTRY_ID).\n- **Usage:** Supports reporting, analytics, and data segmentation by country and region.\n- **Reference:** [KG] hr.countries.md\n\n### 7. HR.REGIONS\n- **Purpose:** Reference table cataloging geographical regions for organizing and grouping countries and locations.\n- **Key Relationships:** Referenced by HR.COUNTRIES (via REGION_ID).\n- **Usage:** Used for reporting, analytics, and geographic segmentation.\n- **Reference:** [KG] hr.regions.md\n\n---\n\n## References\n\n1. [KG] hr.employees.md\n2. [KG] hr.departments.md\n3. [KG] hr.job_history.md\n4. [KG] hr.jobs.md\n5. [KG] hr.locations.md\n\nIf you need details about any specific table, please let me know!",
+    "cache_type": "query",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "list all the tables",
+    "create_time": 1754138842,
+    "update_time": 1754138842,
+    "_id": "hybrid:query:aa15d1436934da8b5abb117d78c1333a"
   }
 }

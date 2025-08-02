@@ -1,6 +1,5 @@
 import logging
 import numpy as np
-from openai import AzureOpenAI
 from lightrag import LightRAG, QueryParam
 from lightrag.utils import EmbeddingFunc, TokenTracker
 from lightrag.kg.shared_storage import initialize_pipeline_status
@@ -17,18 +16,18 @@ def set_global_token_tracker(tracker):
     global _global_token_tracker
     _global_token_tracker = tracker
 
-# Standalone functions for LightRAG to avoid deepcopy issues
+# Import azure_factory for shared clients
+from .azure_factory import get_chat_client, get_embedding_client
+
+# Standalone functions for LightRAG - use shared clients AND track tokens for RAG
 async def llm_model_func(prompt: str, system_prompt: str = None, 
                        history_messages: list = None, **kwargs) -> str:
-    """LLM function for LightRAG"""
+    """LLM function for LightRAG - uses shared Azure client with RAG token tracking"""
     if history_messages is None:
         history_messages = []
     
-    client = AzureOpenAI(
-        api_key=Config.AZURE_OPENAI_API_KEY,
-        api_version=Config.AZURE_OPENAI_API_VERSION,
-        azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
-    )
+    # Use shared client instead of creating new one
+    client = get_chat_client()
         
     messages = []
     if system_prompt:
@@ -45,7 +44,7 @@ async def llm_model_func(prompt: str, system_prompt: str = None,
         n=kwargs.get("n", 1),
     )
     
-    # Track token usage if global tracker is available and enabled
+    # Track token usage for RAG if global tracker is available
     global _global_token_tracker
     if _global_token_tracker and Config.ENABLE_TOKEN_TRACKING and chat_completion.usage:
         usage = chat_completion.usage
@@ -54,25 +53,22 @@ async def llm_model_func(prompt: str, system_prompt: str = None,
             'completion_tokens': usage.completion_tokens,
             'total_tokens': usage.total_tokens
         })
-        logger.debug(f"LLM tracked {usage.total_tokens} tokens")
+        logger.debug(f"LLM tracked {usage.total_tokens} tokens for RAG")
     
     logger.info("LLM model response generated")
     return chat_completion.choices[0].message.content
 
 async def embedding_func(texts: list[str]) -> np.ndarray:
-    """Generate embeddings for texts"""
-    client = AzureOpenAI(
-        api_key=Config.AZURE_OPENAI_API_KEY,
-        api_version=Config.AZURE_EMBEDDING_API_VERSION,
-        azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
-    )
+    """Generate embeddings for texts - uses shared Azure client with RAG token tracking"""
+    # Use shared client instead of creating new one
+    client = get_embedding_client()
     
     embedding = client.embeddings.create(
         model=Config.AZURE_EMBEDDING_DEPLOYMENT,
         input=texts
     )
     
-    # Track token usage if global tracker is available and enabled
+    # Track token usage for RAG if global tracker is available
     global _global_token_tracker
     if _global_token_tracker and Config.ENABLE_TOKEN_TRACKING and embedding.usage:
         usage = embedding.usage
@@ -81,7 +77,7 @@ async def embedding_func(texts: list[str]) -> np.ndarray:
             'completion_tokens': 0,  # Embeddings don't have completion tokens
             'total_tokens': usage.total_tokens
         })
-        logger.debug(f"Embedding tracked {usage.total_tokens} tokens")
+        logger.debug(f"Embedding tracked {usage.total_tokens} tokens for RAG")
     
     embeddings = [item.embedding for item in embedding.data]
     logger.info(f"Generated embeddings for {len(texts)} texts")

@@ -1,22 +1,15 @@
 import logging
 import numpy as np
-from openai import AzureOpenAI
 from .config import Config
+from .azure_factory import get_chat_client, get_embedding_client
 
 logger = logging.getLogger(__name__)
 
 class AzureOpenAIClient:
     def __init__(self):
-        self.client = AzureOpenAI(
-            api_version=Config.AZURE_OPENAI_API_VERSION,
-            azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
-            api_key=Config.AZURE_OPENAI_API_KEY
-        )
-        self.embedding_client = AzureOpenAI(
-            api_key=Config.AZURE_OPENAI_API_KEY,
-            api_version=Config.AZURE_EMBEDDING_API_VERSION,
-            azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
-        )
+        # Use shared clients instead of creating new ones
+        self.client = get_chat_client()
+        self.embedding_client = get_embedding_client()
         # Token usage tracking
         self.token_usage = {
             "total_tokens": 0,
@@ -67,12 +60,8 @@ class AzureOpenAIClient:
         if history_messages is None:
             history_messages = []
         
-        # Create client inside function to avoid deepcopy issues
-        client = AzureOpenAI(
-            api_key=Config.AZURE_OPENAI_API_KEY,
-            api_version=Config.AZURE_OPENAI_API_VERSION,
-            azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
-        )
+        # Use shared client instead of creating new one every time
+        client = get_chat_client()
             
         messages = []
         if system_prompt:
@@ -94,12 +83,8 @@ class AzureOpenAIClient:
     
     async def embedding_func(self, texts: list[str]) -> np.ndarray:
         """Generate embeddings for texts"""
-        # Create client inside function to avoid deepcopy issues
-        client = AzureOpenAI(
-            api_key=Config.AZURE_OPENAI_API_KEY,
-            api_version=Config.AZURE_EMBEDDING_API_VERSION,
-            azure_endpoint=Config.AZURE_OPENAI_ENDPOINT,
-        )
+        # Use shared client instead of creating new one every time
+        client = get_embedding_client()
         
         embedding = client.embeddings.create(
             model=Config.AZURE_EMBEDDING_DEPLOYMENT,
