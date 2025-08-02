@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo
@@ -11,7 +9,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASS}
     volumes:
-      - ./data:/data
+      - ./data/neo4j:/data
     networks:
       - dbchat3
 
@@ -25,7 +23,7 @@ services:
     environment:
       - NEO4J_AUTH=${NEO4J_USERNAME}/${NEO4J_PASSWORD}
     volumes:
-      - ./data:/data
+      - ./data/mongo:/data
     networks:
       - dbchat3
 
