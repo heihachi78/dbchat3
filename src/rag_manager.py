@@ -5,6 +5,7 @@ from lightrag.utils import EmbeddingFunc, TokenTracker
 from lightrag.kg.shared_storage import initialize_pipeline_status
 from .config import Config
 from neo4j import GraphDatabase
+from pymongo import MongoClient
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,28 @@ class RAGManager:
             driver.close()
         except Exception as e:
             logger.error(f"Failed to clear Neo4j database: {e}")
+            raise
+    
+    def clear_mongodb_database(self):
+        """Clear all data from MongoDB database"""
+        try:
+            # Build MongoDB connection string
+            mongo_uri = f"mongodb://{Config.MONGO_USER}:{Config.MONGO_PASS}@{Config.MONGO_URI.replace('mongodb://', '')}"
+            client = MongoClient(mongo_uri)
+            
+            # Get the database
+            db = client[Config.MONGO_DATABASE]
+            
+            # Get all collection names and drop them
+            collection_names = db.list_collection_names()
+            for collection_name in collection_names:
+                db[collection_name].drop()
+                logger.info(f"Dropped MongoDB collection: {collection_name}")
+            
+            logger.info("MongoDB database cleared successfully")
+            client.close()
+        except Exception as e:
+            logger.error(f"Failed to clear MongoDB database: {e}")
             raise
     
     async def initialize(self):

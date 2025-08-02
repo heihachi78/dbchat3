@@ -48,9 +48,12 @@ async def process_database_files():
         print(f"  Prompt tokens: {doc_usage['prompt_tokens']}")
         print(f"  Completion tokens: {doc_usage['completion_tokens']}")
     
-    # Clear Neo4j database before starting
+    # Clear databases before starting
     logger.info("Clearing Neo4j database...")
     rag_manager.clear_neo4j_database()
+    
+    logger.info("Clearing MongoDB database...")
+    rag_manager.clear_mongodb_database()
     
     # Initialize RAG
     await rag_manager.initialize()
@@ -92,9 +95,12 @@ async def run_pipeline():
     doc_processor = DocumentationProcessor(None)  # No Azure client needed
     rag_manager = RAGManager()
     
-    # Clear Neo4j database before starting
+    # Clear databases before starting
     logger.info("Clearing Neo4j database...")
     rag_manager.clear_neo4j_database()
+    
+    logger.info("Clearing MongoDB database...")
+    rag_manager.clear_mongodb_database()
     
     # Recreate working directory and copy existing MD files
     doc_processor.recreate_working_dir_and_copy_docs()
