@@ -13,8 +13,8 @@ def get_chat_client():
     global _chat_client
     
     if _chat_client is None:
-        # Validate config before creating client
-        Config.validate_azure_config()
+        # Configuration validation happens at application startup in main.py
+        # No need to validate here again
         
         _chat_client = AzureOpenAI(
             api_version=Config.AZURE_OPENAI_API_VERSION,
@@ -30,8 +30,8 @@ def get_embedding_client():
     global _embedding_client
     
     if _embedding_client is None:
-        # Validate config before creating client
-        Config.validate_azure_config()
+        # Configuration validation happens at application startup in main.py
+        # No need to validate here again
         
         _embedding_client = AzureOpenAI(
             api_key=Config.AZURE_OPENAI_API_KEY,

@@ -26,6 +26,16 @@ logger = logging.getLogger(__name__)
 
 async def process_database_files():
     """Process all database files and build RAG index"""
+    # Validate all configuration at startup
+    try:
+        Config.validate_all_config()
+        logger.info("Configuration validated successfully")
+    except ValueError as e:
+        logger.error(f"Configuration error: {e}")
+        print(f"\nConfiguration error: {e}")
+        print("Please check your .env file and ensure all required settings are configured.")
+        raise SystemExit(1)
+    
     logger.info("Starting database file processing...")
     
     # Initialize components
@@ -89,6 +99,16 @@ async def process_database_files():
 
 async def run_pipeline():
     """Run RAG pipeline without generating documentation (assumes MD files exist)"""
+    # Validate all configuration at startup
+    try:
+        Config.validate_all_config()
+        logger.info("Configuration validated successfully")
+    except ValueError as e:
+        logger.error(f"Configuration error: {e}")
+        print(f"\nConfiguration error: {e}")
+        print("Please check your .env file and ensure all required settings are configured.")
+        raise SystemExit(1)
+    
     logger.info("Starting RAG pipeline (skipping documentation generation)...")
     
     # Initialize components
@@ -130,6 +150,15 @@ async def chat_mode(rag_manager=None):
     """Interactive chat mode"""
     # If RAG manager not provided, create one for existing data
     if not rag_manager:
+        # Validate all configuration at startup
+        try:
+            Config.validate_all_config()
+            logger.info("Configuration validated successfully")
+        except ValueError as e:
+            logger.error(f"Configuration error: {e}")
+            print(f"\nConfiguration error: {e}")
+            print("Please check your .env file and ensure all required settings are configured.")
+            raise SystemExit(1)
         rag_manager = RAGManager()
         await rag_manager.initialize()
         await rag_manager.insert_documents()

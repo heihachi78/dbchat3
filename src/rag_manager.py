@@ -138,15 +138,8 @@ class RAGManager:
     
     async def initialize(self):
         """Initialize LightRAG with Azure OpenAI functions, Neo4j graph storage, and MongoDB KV/doc status storage"""
-        # Validate configurations
-        try:
-            Config.validate_neo4j_config()
-            logger.info("Neo4j configuration validated successfully")
-            Config.validate_mongo_config()
-            logger.info("MongoDB configuration validated successfully")
-        except ValueError as e:
-            logger.error(f"Configuration error: {e}")
-            raise
+        # Configuration validation happens at application startup in main.py
+        # No need to validate here again
         
         try:
             self.rag = LightRAG(

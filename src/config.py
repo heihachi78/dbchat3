@@ -54,38 +54,80 @@ class Config:
         
         missing_configs = [name for name, value in required_configs if not value]
         if missing_configs:
-            raise ValueError(f"Missing required Azure configuration: {', '.join(missing_configs)}")
+            raise ValueError(
+                f"Missing required Azure OpenAI configuration variables: {', '.join(missing_configs)}\n"
+                f"Please ensure these are set in your .env file or as environment variables.\n"
+                f"Refer to .env.sample for the required format."
+            )
     
     @classmethod
     def validate_neo4j_config(cls):
         """Validate Neo4j configuration"""
         if not cls.NEO4J_PASSWORD:
-            raise ValueError("NEO4J_PASSWORD environment variable must be set")
+            raise ValueError(
+                "NEO4J_PASSWORD environment variable must be set\n"
+                "This is required to authenticate with your Neo4j database.\n"
+                "Default username is 'neo4j' unless NEO4J_USERNAME is specified."
+            )
         
         # Validate URI scheme
         valid_schemes = ['bolt', 'bolt+ssc', 'bolt+s', 'neo4j', 'neo4j+ssc', 'neo4j+s']
         if not any(cls.NEO4J_URI.startswith(scheme + '://') for scheme in valid_schemes):
-            raise ValueError(f"NEO4J_URI must use one of these schemes: {valid_schemes}")
+            raise ValueError(
+                f"NEO4J_URI '{cls.NEO4J_URI}' has an invalid scheme\n"
+                f"Must use one of these schemes: {', '.join(valid_schemes)}\n"
+                f"Example: neo4j://localhost:7687 or bolt://localhost:7687"
+            )
     
     @classmethod
     def validate_mongo_config(cls):
         """Validate MongoDB configuration"""
         if not cls.MONGO_URI:
-            raise ValueError("MONGO_URI environment variable must be set")
+            raise ValueError(
+                "MONGO_URI environment variable must be set\n"
+                "Example: mongodb://localhost:27017/\n"
+                "For authenticated connections, use: mongodb://username:password@host:port/"
+            )
         
         # Basic MongoDB URI validation
         if not cls.MONGO_URI.startswith('mongodb://') and not cls.MONGO_URI.startswith('mongodb+srv://'):
-            raise ValueError("MONGO_URI must start with 'mongodb://' or 'mongodb+srv://'")
+            raise ValueError(
+                f"MONGO_URI '{cls.MONGO_URI}' has an invalid format\n"
+                "Must start with 'mongodb://' or 'mongodb+srv://'\n"
+                "Example: mongodb://localhost:27017/"
+            )
         
         if not cls.MONGO_DATABASE:
-            raise ValueError("MONGO_DATABASE must be specified")
+            raise ValueError(
+                "MONGO_DATABASE must be specified\n"
+                "This defines which MongoDB database to use for storage.\n"
+                "Default value is 'LightRAG' if not set."
+            )
     
     @classmethod
     def validate_all_config(cls):
         """Validate all configuration"""
-        cls.validate_azure_config()
-        cls.validate_neo4j_config()
-        cls.validate_mongo_config()
+        errors = []
+        
+        # Validate each configuration and collect errors
+        try:
+            cls.validate_azure_config()
+        except ValueError as e:
+            errors.append(f"Azure OpenAI Configuration:\n{str(e)}")
+        
+        try:
+            cls.validate_neo4j_config()
+        except ValueError as e:
+            errors.append(f"Neo4j Configuration:\n{str(e)}")
+        
+        try:
+            cls.validate_mongo_config()
+        except ValueError as e:
+            errors.append(f"MongoDB Configuration:\n{str(e)}")
+        
+        # If there are any errors, raise them all together
+        if errors:
+            raise ValueError("\n\n".join(errors))
     
     # Documentation system prompt
     SYSTEM_PROMPT = """
