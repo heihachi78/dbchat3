@@ -27,11 +27,15 @@ class Config:
     LOG_DIR = Path(os.getenv("LOG_DIR", "logs"))
     
     # Model settings
-    EMBEDDING_DIMENSION = 3072  # small 1536, large 3072
+    EMBEDDING_DIMENSION = int(os.getenv("AZURE_EMBEDDING_DIMENSION", "3072"))  # small 1536, large 3072
     
     # Token tracking settings
     ENABLE_TOKEN_TRACKING = os.getenv("ENABLE_TOKEN_TRACKING", "true").lower() == "true"
     SHOW_TOKEN_USAGE_IN_CHAT = os.getenv("SHOW_TOKEN_USAGE_IN_CHAT", "true").lower() == "true"
+    
+    # LlamaIndex integration settings
+    USE_LLAMAINDEX = os.getenv("USE_LLAMAINDEX", "false").lower() == "true"
+    LLAMAINDEX_FALLBACK_TO_DIRECT = os.getenv("LLAMAINDEX_FALLBACK_TO_DIRECT", "true").lower() == "true"
     
     @classmethod
     def validate_azure_config(cls):

@@ -102,6 +102,7 @@ Required environment variables in `.env`:
 - `AZURE_OPENAI_DEPLOYMENT` (e.g., gpt-4.1)
 - `AZURE_EMBEDDING_DEPLOYMENT` (e.g., text-embedding-3-large)
 - `AZURE_EMBEDDING_API_VERSION` (e.g., 2024-02-01)
+- `AZURE_EMBEDDING_DIMENSION` (e.g., 3072 for large, 1536 for small)
 
 ### Neo4j Configuration
 - `NEO4J_URI` (default: "neo4j://localhost:7687")
@@ -118,15 +119,6 @@ Required environment variables in `.env`:
 ### Token Tracking Settings
 - `ENABLE_TOKEN_TRACKING` (default: "true") - Enable/disable token usage tracking
 - `SHOW_TOKEN_USAGE_IN_CHAT` (default: "true") - Show token usage after each query in chat mode
-
-### LightRAG Specific Settings (in .env.sample)
-- `LLM_BINDING`: azure_openai
-- `LLM_BINDING_HOST`: same as AZURE_OPENAI_ENDPOINT
-- `LLM_MODEL`: same as AZURE_OPENAI_DEPLOYMENT
-- `LLM_BINDING_API_KEY`: same as AZURE_OPENAI_API_KEY
-- `EMBEDDING_BINDING`: azure_openai
-- `EMBEDDING_MODEL`: same as AZURE_EMBEDDING_DEPLOYMENT
-- `EMBEDDING_DIM`: 3072 (for text-embedding-3-large)
 
 ## Important Patterns
 
@@ -278,3 +270,9 @@ Current Token Usage:
 ```
 
 This feature helps monitor API costs and optimize queries for efficiency.
+```
+
+## Usage Warnings
+
+- **Cost Optimization**: 
+  - Never run the `--run_pipeline` and the `--process_database_files` together, as it takes a lot of time and uses a paid endpoint

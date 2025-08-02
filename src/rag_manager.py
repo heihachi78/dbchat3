@@ -19,6 +19,24 @@ def set_global_token_tracker(tracker):
 # Import azure_factory for shared clients
 from .azure_factory import get_chat_client, get_embedding_client
 
+# Import LlamaIndex integration when available
+if Config.USE_LLAMAINDEX:
+    try:
+        from .llamaindex_rag_bridge import (
+            llamaindex_llm_model_func, 
+            llamaindex_embedding_func,
+            set_global_token_tracker as set_llamaindex_token_tracker
+        )
+        LLAMAINDEX_AVAILABLE = True
+        logger.info("LlamaIndex integration enabled and available")
+    except ImportError as e:
+        LLAMAINDEX_AVAILABLE = False
+        logger.warning(f"LlamaIndex integration enabled but not available: {e}")
+        if not Config.LLAMAINDEX_FALLBACK_TO_DIRECT:
+            raise ImportError("LlamaIndex integration enabled but dependencies not installed")
+else:
+    LLAMAINDEX_AVAILABLE = False
+
 # Standalone functions for LightRAG - use shared clients AND track tokens for RAG
 async def llm_model_func(prompt: str, system_prompt: str = None, 
                        history_messages: list = None, **kwargs) -> str:
@@ -84,13 +102,26 @@ async def embedding_func(texts: list[str]) -> np.ndarray:
     return np.array(embeddings)
 
 class RAGManager:
-    def __init__(self):
+    def __init__(self, use_llamaindex: bool = None):
         self.working_dir = Config.WORKING_DIR
         self.rag = None
         self.token_tracker = TokenTracker()
         self.enable_token_tracking = Config.ENABLE_TOKEN_TRACKING
-        # Set the global token tracker for standalone functions
-        set_global_token_tracker(self.token_tracker)
+        
+        # Determine which embedding approach to use
+        if use_llamaindex is None:
+            use_llamaindex = Config.USE_LLAMAINDEX
+        
+        self.use_llamaindex = use_llamaindex and LLAMAINDEX_AVAILABLE
+        
+        if self.use_llamaindex:
+            # Set the global token tracker for LlamaIndex functions
+            set_llamaindex_token_tracker(self.token_tracker)
+            logger.info("RAGManager initialized with LlamaIndex embedding")
+        else:
+            # Set the global token tracker for direct Azure functions
+            set_global_token_tracker(self.token_tracker)
+            logger.info("RAGManager initialized with direct Azure OpenAI embedding")
     
     def clear_neo4j_database(self):
         """Clear all data from Neo4j database"""
@@ -121,22 +152,32 @@ class RAGManager:
             raise
         
         try:
+            # Choose the appropriate functions based on embedding approach
+            if self.use_llamaindex:
+                llm_func = llamaindex_llm_model_func
+                embed_func = llamaindex_embedding_func
+                approach_name = "LlamaIndex"
+            else:
+                llm_func = llm_model_func
+                embed_func = embedding_func
+                approach_name = "direct Azure OpenAI"
+            
             self.rag = LightRAG(
                 working_dir=str(self.working_dir),
-                llm_model_func=llm_model_func,
+                llm_model_func=llm_func,
                 embedding_func=EmbeddingFunc(
                     embedding_dim=Config.EMBEDDING_DIMENSION,
                     max_token_size=8192,
-                    func=embedding_func,
+                    func=embed_func,
                 ),
                 vector_storage="FaissVectorDBStorage",
                 graph_storage="Neo4JStorage",
             )
             
+            logger.info(f"Initialized LightRAG with {approach_name} and Neo4j graph storage")
+            
             await self.rag.initialize_storages()
             await initialize_pipeline_status()
-            
-            logger.info("Initialized LightRAG with Neo4j graph storage and pipeline status")
         except Exception as e:
             logger.error(f"Failed to initialize LightRAG with Neo4j: {e}")
             raise
