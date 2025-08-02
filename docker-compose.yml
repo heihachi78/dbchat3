@@ -1,0 +1,32 @@
+services:
+  mongodb:
+    image: mongo
+    container_name: dbchat3-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASS}
+    volumes:
+      - ./data/mongodb:/data/db
+    networks:
+      - dbchat3
+
+  neo4j:
+    image: neo4j:2025.06.2
+    container_name: dbchat3-neo4j
+    restart: always
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=${NEO4J_USERNAME}/${NEO4J_PASSWORD}
+    volumes:
+      - ./data/neo4j:/data
+    networks:
+      - dbchat3
+
+networks:
+  dbchat3:
+    driver: bridge

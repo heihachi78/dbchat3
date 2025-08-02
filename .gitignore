@@ -1,0 +1,10 @@
+.venv
+.env
+logs/
+*.log
+__pycache__/
+*.pyc
+.claude
+CLAUDE.md
+data/
+working_dir/
