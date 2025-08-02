@@ -2676,5 +2676,57 @@
     "create_time": 1754130697,
     "update_time": 1754130697,
     "_id": "hybrid:query:6247869f6a82851d04ddd99e91f0bd77"
+  },
+  "hybrid:keywords:59f763f2b0335b0e11b296cb1572b8fc": {
+    "return": "{\"high_level_keywords\": [\"Database columns\", \"Function usage\", \"Data retrieval\"], \"low_level_keywords\": [\"get_region_by_employee_id\", \"columns\", \"employee_id\", \"region\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "list all the columns that the get_region_by_employee_id is using. just list them",
+    "create_time": 1754130745,
+    "update_time": 1754130745,
+    "_id": "hybrid:keywords:59f763f2b0335b0e11b296cb1572b8fc"
+  },
+  "hybrid:query:59f763f2b0335b0e11b296cb1572b8fc": {
+    "return": "- employee_id  \n- department_id  \n- location_id  \n- country_id  \n- region_id  \n- region_name  \n\nReferences:\n- [DC] hr.get_region_by_employee_id.md\n- [KG] hr.get_region_by_employee_id.md",
+    "cache_type": "query",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "list all the columns that the get_region_by_employee_id is using. just list them",
+    "create_time": 1754130752,
+    "update_time": 1754130752,
+    "_id": "hybrid:query:59f763f2b0335b0e11b296cb1572b8fc"
+  },
+  "hybrid:keywords:45d936548cae3d545aa63cf819a54c7a": {
+    "return": "{\"high_level_keywords\": [\"Code request\", \"Function implementation\", \"Employee data retrieval\"], \"low_level_keywords\": [\"get_region_by_employee_id\", \"Function code\", \"Employee ID\", \"Region\"]}",
+    "cache_type": "keywords",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "show me the code of the get_region_by_employee_id function",
+    "create_time": 1754130802,
+    "update_time": 1754130802,
+    "_id": "hybrid:keywords:45d936548cae3d545aa63cf819a54c7a"
+  },
+  "hybrid:query:45d936548cae3d545aa63cf819a54c7a": {
+    "return": "## Code Availability for `get_region_by_employee_id`\n\nThe provided documentation and knowledge base offer a comprehensive description of the `hr.get_region_by_employee_id` function, including its purpose, logic flow, parameters, return type, and usage patterns. However, the actual source code (PL/SQL implementation) of the function is not included in the available materials.\n\n### What Is Documented\n\n- **Function Purpose:** Retrieves the region name for a given employee by joining the `employees`, `departments`, `locations`, `countries`, and `regions` tables.\n- **Parameter:** Accepts an employee ID (`NUMBER`).\n- **Return Value:** Returns the region name (`VARCHAR2(100)`), or `NULL` if not found.\n- **Logic Flow:** Multi-table join to traverse the organizational hierarchy.\n- **Exception Handling:** Returns `NULL` if no data is found.\n- **Usage Example:**\n  ```sql\n  SELECT hr.get_region_by_employee_id(101) FROM dual;\n  ```\n- **Integration:** Used in reporting, compliance, and business logic for regional segmentation.\n\n### Code Status\n\n**The actual PL/SQL code for the function is not present in the knowledge base or documentation provided.** Only the functional description, logic, and usage patterns are available.\n\n---\n\n## References\n\n1. [DC] hr.get_region_by_employee_id.md  \n2. [KG] hr.get_region_by_employee_id.md  \n3. [KG] hr.emp_details_view.md  \n4. [KG] hr.regions.md  \n5. [DC] hr.emp_details_view.md",
+    "cache_type": "query",
+    "chunk_id": null,
+    "embedding": null,
+    "embedding_shape": null,
+    "embedding_min": null,
+    "embedding_max": null,
+    "original_prompt": "show me the code of the get_region_by_employee_id function",
+    "create_time": 1754130818,
+    "update_time": 1754130818,
+    "_id": "hybrid:query:45d936548cae3d545aa63cf819a54c7a"
   }
 }
