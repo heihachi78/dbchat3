@@ -413,7 +413,7 @@ class RAGManager:
             raise RuntimeError("RAG not initialized. Call initialize() first.")
         
         try:
-            params = QueryParam(mode=mode)
+            params = QueryParam(mode=mode, enable_rerank=False)
             if conversation_history:
                 params.conversation_history = conversation_history
             
@@ -447,7 +447,7 @@ class RAGManager:
         
         for mode in modes:
             try:
-                params = QueryParam(mode=mode)
+                params = QueryParam(mode=mode, enable_rerank=False)
                 if conversation_history:
                     params.conversation_history = conversation_history
                     
