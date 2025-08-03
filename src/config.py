@@ -107,7 +107,7 @@ class Config:
     LOG_DIR = Path(os.getenv("LOG_DIR", "logs"))
     
     # Model settings
-    EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "3072"))  # Azure: 1536/3072, Ollama nomic-embed-text: 768
+    EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "768"))  # Azure: 1536/3072, Ollama nomic-embed-text: 768
     
     # Token tracking settings
     ENABLE_TOKEN_TRACKING = os.getenv("ENABLE_TOKEN_TRACKING", "true").lower() == "true"

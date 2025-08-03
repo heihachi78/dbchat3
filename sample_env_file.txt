@@ -100,10 +100,9 @@ OLLAMA_HOST=http://localhost:11434
 # - llama2:latest (7B parameters)
 # - mistral:latest (7B parameters)
 # - mixtral:latest (8x7B MoE)
-# - qwen2.5:latest (various sizes)
-# - dbchat3model:latest (your custom model)
+# - qwen3:4b:latest (various sizes)
 # Check available models: ollama list
-OLLAMA_LLM_MODEL=dbchat3model:latest
+OLLAMA_LLM_MODEL=qwen3:4b
 
 # ---------------------------------------------------------------------------
 # OLLAMA_EMBEDDING_MODEL
