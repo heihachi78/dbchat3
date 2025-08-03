@@ -5,6 +5,11 @@ import random
 from functools import wraps
 from typing import Callable, Any, Union, Tuple, Type
 from openai import RateLimitError, APIConnectionError, APITimeoutError
+try:
+    import httpx
+    HTTPX_AVAILABLE = True
+except ImportError:
+    HTTPX_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -108,11 +113,24 @@ AZURE_API_RETRY_CONFIG = {
     'retryable_exceptions': (RateLimitError, APIConnectionError, APITimeoutError, ConnectionError)
 }
 
+# Build retryable exceptions list dynamically based on available packages
+_database_exceptions = [ConnectionError, TimeoutError, OSError]
+if HTTPX_AVAILABLE:
+    _database_exceptions.extend([httpx.ReadTimeout, httpx.TimeoutException, httpx.ConnectTimeout])
+
 DATABASE_RETRY_CONFIG = {
     'max_attempts': 3,
     'base_delay': 2.0,
     'max_delay': 60.0,
-    'retryable_exceptions': (ConnectionError, TimeoutError, OSError)
+    'retryable_exceptions': tuple(_database_exceptions)
+}
+
+# LightRAG-specific retry configuration with longer timeouts for knowledge graph operations
+LIGHTRAG_RETRY_CONFIG = {
+    'max_attempts': 2,  # Fewer attempts but longer timeouts
+    'base_delay': 5.0,
+    'max_delay': 120.0,  # 2 minutes max delay
+    'retryable_exceptions': tuple(_database_exceptions)
 }
 
 FILE_OPERATION_RETRY_CONFIG = {

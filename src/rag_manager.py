@@ -10,7 +10,7 @@ from neo4j import GraphDatabase
 from neo4j.exceptions import ServiceUnavailable, TransientError
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError, InvalidURI
-from .retry_utils import retry_async, retry_sync, AZURE_API_RETRY_CONFIG, DATABASE_RETRY_CONFIG
+from .retry_utils import retry_async, retry_sync, AZURE_API_RETRY_CONFIG, LIGHTRAG_RETRY_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ async def embedding_func(texts: list[str]) -> np.ndarray:
         raise
 
 # Ollama integration functions for LightRAG
-@retry_async(**DATABASE_RETRY_CONFIG)
+@retry_async(**LIGHTRAG_RETRY_CONFIG)
 async def ollama_llm_callback(prompt: str, system_prompt: str = None,
                             history_messages: list = None, **kwargs) -> str:
     """LLM function for LightRAG using Ollama - includes RAG token tracking and retry logic"""
@@ -156,10 +156,21 @@ async def ollama_llm_callback(prompt: str, system_prompt: str = None,
         return result
         
     except Exception as e:
-        logger.error(f"Error in ollama_llm_callback: {e}")
+        # Enhanced error logging with context
+        logger.error(f"Error in ollama_llm_callback after {LIGHTRAG_RETRY_CONFIG['max_attempts']} attempts: {e}")
+        logger.error(f"Prompt length: {len(prompt)} chars, System prompt: {bool(system_prompt)}")
+        logger.error(f"Message count: {len(messages)}, Model: {Config.OLLAMA_LLM_MODEL}")
+        
+        # Log specific error types for troubleshooting
+        error_type = type(e).__name__
+        if "ReadTimeout" in error_type or "TimeoutException" in error_type:
+            logger.error(f"Timeout error - consider increasing OLLAMA_TIMEOUT or OLLAMA_NUM_CTX settings")
+        elif "ConnectTimeout" in error_type or "ConnectionError" in error_type:
+            logger.error(f"Connection error - verify Ollama server is running at {Config.OLLAMA_HOST}")
+        
         raise
 
-@retry_async(**DATABASE_RETRY_CONFIG)
+@retry_async(**LIGHTRAG_RETRY_CONFIG)
 async def ollama_embedding_func(texts: list[str]) -> np.ndarray:
     """Generate embeddings using Ollama - includes RAG token tracking and retry logic"""
     try:
@@ -183,7 +194,17 @@ async def ollama_embedding_func(texts: list[str]) -> np.ndarray:
         return embeddings
         
     except Exception as e:
-        logger.error(f"Error in ollama_embedding_func: {e}")
+        # Enhanced error logging for embedding function
+        logger.error(f"Error in ollama_embedding_func after {LIGHTRAG_RETRY_CONFIG['max_attempts']} attempts: {e}")
+        logger.error(f"Text count: {len(texts)}, Model: {Config.OLLAMA_EMBEDDING_MODEL}")
+        
+        # Log specific error types
+        error_type = type(e).__name__
+        if "ReadTimeout" in error_type or "TimeoutException" in error_type:
+            logger.error(f"Embedding timeout - try processing fewer texts at once or increase timeout")
+        elif "ConnectTimeout" in error_type or "ConnectionError" in error_type:
+            logger.error(f"Connection error - verify Ollama server is running at {Config.OLLAMA_HOST}")
+        
         raise
 
 class RAGManager:
@@ -380,32 +401,77 @@ class RAGManager:
             return base_uri
     
     async def insert_documents(self):
-        """Insert all markdown documents into RAG storage"""
+        """Insert all markdown documents into RAG storage with enhanced error handling"""
         if not self.lightrag_instance:
             raise RuntimeError("RAG not initialized. Call initialize() first.")
         
         # Reset token tracker for insert operation
         self.reset_token_tracker()
         
+        # Get list of files to process
+        md_files = list(self.working_dir.rglob("*.md"))
+        total_files = len(md_files)
+        logger.info(f"Starting document insertion for {total_files} files")
+        
+        successful_insertions = 0
+        failed_insertions = []
+        
         # Use context manager if token tracking is enabled
         if self.enable_token_tracking:
             with self.token_tracker:
-                for md_file in self.working_dir.rglob("*.md"):
-                    with open(md_file, encoding="utf-8") as doc:
-                        await self.lightrag_instance.ainsert([doc.read()], file_paths=[md_file.name])
-                        logger.info(f"Inserted documentation from {md_file} into RAG storage")
+                successful_insertions, failed_insertions = await self._process_documents(md_files)
         else:
-            for md_file in self.working_dir.rglob("*.md"):
-                with open(md_file, encoding="utf-8") as doc:
-                    await self.lightrag_instance.ainsert([doc.read()], file_paths=[md_file.name])
-                    logger.info(f"Inserted documentation from {md_file} into RAG storage")
+            successful_insertions, failed_insertions = await self._process_documents(md_files)
         
-        logger.info("All documentation files inserted into RAG storage")
+        # Log summary
+        logger.info(f"Document insertion completed: {successful_insertions}/{total_files} successful")
+        if failed_insertions:
+            logger.warning(f"Failed to insert {len(failed_insertions)} documents: {[f.name for f in failed_insertions]}")
         
         # Log token usage for insert operation
         if self.enable_token_tracking:
             usage = self.token_tracker.get_usage()
             logger.info(f"Token usage for document insertion: {usage}")
+        
+        # Raise exception if all insertions failed
+        if successful_insertions == 0 and total_files > 0:
+            raise RuntimeError(f"Failed to insert any documents. Check Ollama server status and configuration.")
+    
+    async def _process_documents(self, md_files):
+        """Process documents with individual error handling"""
+        successful_insertions = 0
+        failed_insertions = []
+        
+        for i, md_file in enumerate(md_files, 1):
+            try:
+                logger.info(f"Processing document {i}/{len(md_files)}: {md_file.name}")
+                
+                with open(md_file, encoding="utf-8") as doc:
+                    content = doc.read()
+                    
+                # Insert with timeout monitoring
+                await self.lightrag_instance.ainsert([content], file_paths=[md_file.name])
+                logger.info(f"Successfully inserted documentation from {md_file}")
+                successful_insertions += 1
+                
+            except Exception as e:
+                logger.error(f"Failed to insert document {md_file.name}: {e}")
+                failed_insertions.append(md_file)
+                
+                # Log specific guidance based on error type
+                error_type = type(e).__name__
+                if "ReadTimeout" in error_type or "TimeoutException" in error_type:
+                    logger.warning(f"Document {md_file.name} caused timeout - consider splitting large documents")
+                elif "ConnectTimeout" in error_type or "ConnectionError" in error_type:
+                    logger.error(f"Connection lost during {md_file.name} processing - check Ollama server")
+                    # If connection is lost, break the loop to avoid further failures
+                    logger.error("Stopping document processing due to connection issues")
+                    break
+                
+                # Continue with next document unless it's a connection issue
+                continue
+        
+        return successful_insertions, failed_insertions
     
     async def query(self, text: str, mode: str = "hybrid", conversation_history: list = None, track_tokens: bool = True) -> str:
         """Query the RAG system with optional conversation history and token tracking"""

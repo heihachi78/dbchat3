@@ -8,25 +8,43 @@ from .retry_utils import retry_sync, retry_async
 
 logger = logging.getLogger(__name__)
 
-# Ollama-specific retry configuration
+# Ollama-specific retry configuration with httpx timeout support
+try:
+    import httpx
+    _ollama_exceptions = (ollama.ResponseError, ConnectionError, TimeoutError, httpx.ReadTimeout, httpx.TimeoutException, httpx.ConnectTimeout)
+except ImportError:
+    _ollama_exceptions = (ollama.ResponseError, ConnectionError, TimeoutError)
+
+# Standard Ollama retry configuration for documentation generation
 OLLAMA_RETRY_CONFIG = {
     "max_attempts": 3,
     "base_delay": 1.0,
     "max_delay": 10.0,
-    "retryable_exceptions": (
-        ollama.ResponseError,
-        ConnectionError,
-        TimeoutError,
-    )
+    "retryable_exceptions": _ollama_exceptions
+}
+
+# LightRAG-specific Ollama retry configuration with longer timeouts for knowledge graph operations
+OLLAMA_LIGHTRAG_RETRY_CONFIG = {
+    "max_attempts": 2,  # Fewer attempts, longer timeouts
+    "base_delay": 10.0,  # Start with 10 second delay
+    "max_delay": 60.0,   # Up to 1 minute delay
+    "retryable_exceptions": _ollama_exceptions
 }
 
 class OllamaClient:
     def __init__(self, host: str = "http://localhost:11434", timeout: int = 300):
         self.host = host
         self.timeout = timeout
-        # Create both sync and async clients
+        # Create both sync and async clients with enhanced timeout settings
         self.client = ollama.Client(host=host, timeout=timeout)
-        self.async_client = ollama.AsyncClient(host=host, timeout=timeout)
+        
+        # For async client, use extended timeout for LightRAG operations
+        extended_timeout = max(timeout, 600)  # Minimum 10 minutes for complex operations
+        self.async_client = ollama.AsyncClient(host=host, timeout=extended_timeout)
+        
+        # Store both timeouts for reference
+        self.sync_timeout = timeout
+        self.async_timeout = extended_timeout
         
         # Token usage tracking with thread safety
         self.token_usage = {
@@ -35,7 +53,7 @@ class OllamaClient:
             "completion_tokens": 0
         }
         self._token_lock = threading.Lock()
-        logger.info(f"Initialized Ollama clients with host: {host}")
+        logger.info(f"Initialized Ollama clients with host: {host}, sync_timeout: {self.sync_timeout}s, async_timeout: {self.async_timeout}s")
     
     def _strip_thinking_tags(self, text: str) -> str:
         """Remove <think>...</think> tags and their content from text"""
@@ -90,7 +108,7 @@ class OllamaClient:
             logger.error(f"Error in Ollama generate_documentation: {e}")
             raise
     
-    @retry_async(**OLLAMA_RETRY_CONFIG)
+    @retry_async(**OLLAMA_LIGHTRAG_RETRY_CONFIG)
     async def chat_completion_async(self, messages: List[Dict[str, str]], model: str = None, **kwargs) -> str:
         """Async chat completion for LightRAG integration"""
         # Import here to avoid circular import
@@ -130,7 +148,7 @@ class OllamaClient:
             logger.error(f"Error in Ollama async chat completion: {e}")
             raise
     
-    @retry_async(**OLLAMA_RETRY_CONFIG)
+    @retry_async(**OLLAMA_LIGHTRAG_RETRY_CONFIG)
     async def embed_async(self, texts: List[str], model: str = None) -> np.ndarray:
         """Async embedding generation for LightRAG integration"""
         # Import here to avoid circular import
