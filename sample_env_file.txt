@@ -1,0 +1,271 @@
+# ===========================================================================
+# DBChat3 Configuration File
+# ===========================================================================
+# This file contains all configuration options for the DBChat3 system.
+# Copy this file to .env and update the values according to your setup.
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# LLM Provider Configuration
+# ---------------------------------------------------------------------------
+# Determines which Large Language Model provider to use for text generation
+# and embeddings. This is the master switch that controls which set of 
+# configuration options below will be used.
+# Valid values: "azure" or "ollama"
+# - "azure": Use Azure OpenAI Service (requires Azure subscription)
+# - "ollama": Use locally-hosted Ollama models (requires Ollama installation)
+LLM_PROVIDER=ollama
+
+# ===========================================================================
+# Azure OpenAI Configuration
+# ===========================================================================
+# These settings are REQUIRED if LLM_PROVIDER=azure
+# Skip this section if using Ollama
+
+# ---------------------------------------------------------------------------
+# AZURE_OPENAI_API_KEY
+# ---------------------------------------------------------------------------
+# Your Azure OpenAI API key for authentication.
+# Find this in Azure Portal > Your OpenAI Resource > Keys and Endpoint
+# Format: 32-character hexadecimal string
+# Example: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+AZURE_OPENAI_API_KEY=
+
+# ---------------------------------------------------------------------------
+# AZURE_OPENAI_ENDPOINT
+# ---------------------------------------------------------------------------
+# The endpoint URL for your Azure OpenAI resource.
+# Find this in Azure Portal > Your OpenAI Resource > Keys and Endpoint
+# Must include https:// and end with trailing slash
+# Format: https://{your-resource-name}.openai.azure.com/
+AZURE_OPENAI_ENDPOINT=https://heihachi-test-1-resource.openai.azure.com/
+
+# ---------------------------------------------------------------------------
+# AZURE_OPENAI_API_VERSION
+# ---------------------------------------------------------------------------
+# The API version to use for Azure OpenAI chat/completion requests.
+# This determines which features and models are available.
+# Check Azure OpenAI documentation for latest stable version.
+# Format: YYYY-MM-DD or YYYY-MM-DD-preview
+AZURE_OPENAI_API_VERSION=2025-01-01-preview
+
+# ---------------------------------------------------------------------------
+# AZURE_OPENAI_DEPLOYMENT
+# ---------------------------------------------------------------------------
+# The name of your deployed model for text generation/chat completions.
+# This is the deployment name you created in Azure OpenAI Studio, not the
+# model name. Common models: gpt-35-turbo, gpt-4, gpt-4-32k
+# Find this in Azure OpenAI Studio > Deployments
+AZURE_OPENAI_DEPLOYMENT=gpt-4.1-mini
+
+# ---------------------------------------------------------------------------
+# AZURE_EMBEDDING_DEPLOYMENT
+# ---------------------------------------------------------------------------
+# The name of your deployed embedding model.
+# This is used to convert text into vector representations for similarity
+# search and RAG operations. Common models:
+# - text-embedding-ada-002 (1536 dimensions)
+# - text-embedding-3-small (1536 dimensions, faster)
+# - text-embedding-3-large (3072 dimensions, more accurate)
+AZURE_EMBEDDING_DEPLOYMENT=text-embedding-3-small
+
+# ---------------------------------------------------------------------------
+# AZURE_EMBEDDING_API_VERSION
+# ---------------------------------------------------------------------------
+# The API version to use specifically for embedding requests.
+# Can be different from the chat API version to ensure compatibility.
+AZURE_EMBEDDING_API_VERSION=2024-02-01
+
+# ===========================================================================
+# Ollama Configuration
+# ===========================================================================
+# These settings are REQUIRED if LLM_PROVIDER=ollama
+# Skip this section if using Azure OpenAI
+
+# ---------------------------------------------------------------------------
+# OLLAMA_HOST
+# ---------------------------------------------------------------------------
+# The URL where your Ollama server is running.
+# Default: http://localhost:11434 (standard Ollama installation)
+# For remote Ollama servers, use: http://{hostname}:{port}
+# Ensure Ollama is running: ollama serve
+OLLAMA_HOST=http://localhost:11434
+
+# ---------------------------------------------------------------------------
+# OLLAMA_LLM_MODEL
+# ---------------------------------------------------------------------------
+# The Ollama model to use for text generation and chat completions.
+# This model must be pulled before use: ollama pull {model-name}
+# Popular options:
+# - llama2:latest (7B parameters)
+# - mistral:latest (7B parameters)
+# - mixtral:latest (8x7B MoE)
+# - qwen2.5:latest (various sizes)
+# - dbchat3model:latest (your custom model)
+# Check available models: ollama list
+OLLAMA_LLM_MODEL=dbchat3model:latest
+
+# ---------------------------------------------------------------------------
+# OLLAMA_EMBEDDING_MODEL
+# ---------------------------------------------------------------------------
+# The Ollama model to use for generating text embeddings.
+# This model must be pulled before use: ollama pull {model-name}
+# Popular embedding models:
+# - nomic-embed-text:latest (768 dimensions, good performance)
+# - mxbai-embed-large:latest (1024 dimensions)
+# - all-minilm:latest (384 dimensions, lightweight)
+# Note: Embedding dimension must match EMBEDDING_DIMENSION setting below
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text:latest
+
+# ---------------------------------------------------------------------------
+# OLLAMA_TIMEOUT
+# ---------------------------------------------------------------------------
+# Maximum time in seconds to wait for Ollama API responses.
+# Increase this for:
+# - Slower hardware
+# - Larger models
+# - Longer document processing
+# Default: 300 (5 minutes)
+OLLAMA_TIMEOUT=300
+
+# ===========================================================================
+# Model Settings
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# EMBEDDING_DIMENSION
+# ---------------------------------------------------------------------------
+# The vector dimension size of your embedding model.
+# This MUST match the actual output dimension of your chosen embedding model.
+# Common dimensions:
+# - Azure text-embedding-ada-002: 1536
+# - Azure text-embedding-3-small: 1536
+# - Azure text-embedding-3-large: 3072
+# - Ollama nomic-embed-text: 768
+# - Ollama mxbai-embed-large: 1024
+# - Ollama all-minilm: 384
+# CRITICAL: Changing this after initial setup requires rebuilding all indexes
+EMBEDDING_DIMENSION=768
+
+# ===========================================================================
+# Logging Configuration
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# LOG_DIR
+# ---------------------------------------------------------------------------
+# Directory where application logs will be stored.
+# Logs include:
+# - Application startup/shutdown events
+# - API call details and errors
+# - Token usage statistics
+# - Database operations
+# Path can be relative to project root or absolute
+# Directory will be created if it doesn't exist
+LOG_DIR=logs
+
+# ===========================================================================
+# Neo4j Graph Database Configuration
+# ===========================================================================
+# Neo4j stores the knowledge graph extracted by LightRAG
+
+# ---------------------------------------------------------------------------
+# NEO4J_URI
+# ---------------------------------------------------------------------------
+# Connection URI for your Neo4j database.
+# Common formats:
+# - neo4j://localhost:7687 (default, unencrypted)
+# - neo4j+s://localhost:7687 (with encryption)
+# - bolt://localhost:7687 (legacy protocol)
+# For Neo4j Aura: neo4j+s://{dbid}.databases.neo4j.io
+NEO4J_URI=neo4j://localhost:7687
+
+# ---------------------------------------------------------------------------
+# NEO4J_USERNAME
+# ---------------------------------------------------------------------------
+# Username for Neo4j authentication.
+# Default installation uses "neo4j" as username.
+# For Neo4j Aura, this is typically "neo4j"
+NEO4J_USERNAME=neo4j
+
+# ---------------------------------------------------------------------------
+# NEO4J_PASSWORD
+# ---------------------------------------------------------------------------
+# Password for Neo4j authentication.
+# Set during first Neo4j startup or in Neo4j Desktop.
+# For Neo4j Aura, this is provided during database creation.
+# SECURITY: Use a strong password in production
+NEO4J_PASSWORD=yourneo4jpass
+
+# ---------------------------------------------------------------------------
+# NEO4J_WORKSPACE
+# ---------------------------------------------------------------------------
+# The Neo4j database name to use (Neo4j 4.0+ supports multiple databases).
+# Default: "neo4j" (the default database)
+# For Neo4j Community Edition, only "neo4j" is available
+# For Enterprise Edition, you can create custom databases
+NEO4J_WORKSPACE=neo4j
+
+# ===========================================================================
+# Token Usage Tracking
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# ENABLE_TOKEN_TRACKING
+# ---------------------------------------------------------------------------
+# Whether to track token usage for API calls.
+# When enabled, tracks:
+# - Prompt tokens (input)
+# - Completion tokens (output)
+# - Total tokens per request
+# - Cumulative usage per session
+# Useful for monitoring costs and usage patterns
+# Values: true/false
+ENABLE_TOKEN_TRACKING=true
+
+# ---------------------------------------------------------------------------
+# SHOW_TOKEN_USAGE_IN_CHAT
+# ---------------------------------------------------------------------------
+# Whether to display token usage after each response in chat mode.
+# Only applies when ENABLE_TOKEN_TRACKING=true
+# When enabled, shows: [Token usage - Total: X, Prompt: Y, Completion: Z]
+# Values: true/false
+SHOW_TOKEN_USAGE_IN_CHAT=true
+
+# ===========================================================================
+# MongoDB Configuration
+# ===========================================================================
+# MongoDB stores document metadata and key-value pairs for LightRAG
+
+# ---------------------------------------------------------------------------
+# MONGO_USER
+# ---------------------------------------------------------------------------
+# Username for MongoDB authentication.
+# Required if MongoDB has authentication enabled.
+# For MongoDB Atlas, this is the database user you created.
+# Leave empty for local MongoDB without authentication.
+MONGO_USER=mongoadmin
+
+# ---------------------------------------------------------------------------
+# MONGO_PASS
+# ---------------------------------------------------------------------------
+# Password for MongoDB authentication.
+# Required if MongoDB has authentication enabled.
+# For MongoDB Atlas, this is the database user's password.
+# SECURITY: Use a strong password in production
+MONGO_PASS=yourmongopass
+
+# ---------------------------------------------------------------------------
+# MONGO_URI
+# ---------------------------------------------------------------------------
+# MongoDB connection string.
+# Format options:
+# 1. With embedded credentials (overrides MONGO_USER/MONGO_PASS):
+#    mongodb://username:password@localhost:27017/
+# 2. Without credentials (uses MONGO_USER/MONGO_PASS if set):
+#    mongodb://localhost:27017/
+# 3. MongoDB Atlas:
+#    mongodb+srv://username:password@cluster.mongodb.net/
+# 4. Replica set:
+#    mongodb://host1:27017,host2:27017,host3:27017/?replicaSet=myReplicaSet
+MONGO_URI=mongodb://mongoadmin:yourmongopass@localhost:27017/

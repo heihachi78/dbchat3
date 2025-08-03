@@ -3,7 +3,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime
-from src import AzureOpenAIClient, DocumentationProcessor, RAGManager, Config
+from src import DocumentationProcessor, RAGManager, Config
 from src.token_aggregator import TokenAggregator
 
 # Configure logging
@@ -39,13 +39,21 @@ async def process_database_files():
     
     logger.info("Starting database file processing...")
     
-    # Initialize components
-    azure_client = AzureOpenAIClient()
-    doc_processor = DocumentationProcessor(azure_client)
+    # Initialize components based on provider
+    if Config.LLM_PROVIDER == "azure":
+        from src import AzureOpenAIClient
+        llm_client = AzureOpenAIClient()
+    elif Config.LLM_PROVIDER == "ollama":
+        from src.ollama_client import OllamaClient
+        llm_client = OllamaClient(host=Config.OLLAMA_HOST, timeout=int(Config.OLLAMA_TIMEOUT))
+    else:
+        raise ValueError(f"Unknown LLM provider: {Config.LLM_PROVIDER}")
+    
+    doc_processor = DocumentationProcessor(llm_client)
     rag_manager = RAGManager()
     
     # Create token aggregator for unified tracking
-    token_aggregator = TokenAggregator(azure_client, rag_manager)
+    token_aggregator = TokenAggregator(llm_client, rag_manager)
     
     # Process SQL files
     doc_processor.process_sql_files()

@@ -25,6 +25,9 @@ def set_global_token_tracker(tracker):
 # Import azure_factory for shared clients
 from .azure_factory import get_chat_client, get_embedding_client
 
+# Import ollama_factory for Ollama support
+from .ollama_factory import get_ollama_client
+
 
 # Standalone functions for LightRAG - use shared clients AND track tokens for RAG
 @retry_async(**AZURE_API_RETRY_CONFIG)
@@ -108,6 +111,81 @@ async def embedding_func(texts: list[str]) -> np.ndarray:
         logger.error(f"Unexpected error in embedding_func: {e}")
         raise
 
+# Ollama integration functions for LightRAG
+@retry_async(**DATABASE_RETRY_CONFIG)
+async def ollama_llm_callback(prompt: str, system_prompt: str = None,
+                            history_messages: list = None, **kwargs) -> str:
+    """LLM function for LightRAG using Ollama - includes RAG token tracking and retry logic"""
+    if history_messages is None:
+        history_messages = []
+    
+    try:
+        # Use shared Ollama client
+        client = get_ollama_client()
+        
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        if history_messages:
+            messages.extend(history_messages)
+        messages.append({"role": "user", "content": prompt})
+        
+        # Extract options for Ollama
+        options = {
+            "temperature": kwargs.get("temperature", 0),
+            "top_p": kwargs.get("top_p", 1),
+            "num_ctx": 32768  # Ensure sufficient context
+        }
+        
+        result = await client.chat_completion_async(
+            messages=messages,
+            model=Config.OLLAMA_LLM_MODEL,
+            options=options
+        )
+        
+        # Track token usage for RAG if global tracker is available
+        global _global_token_tracker
+        if _global_token_tracker and Config.ENABLE_TOKEN_TRACKING:
+            # Get token usage from Ollama client
+            usage = client.get_token_usage()
+            if usage['total_tokens'] > 0:
+                _global_token_tracker.add_usage(usage)
+                logger.debug(f"Ollama LLM tracked {usage['total_tokens']} tokens for RAG")
+        
+        logger.info("Ollama LLM model response generated")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error in ollama_llm_callback: {e}")
+        raise
+
+@retry_async(**DATABASE_RETRY_CONFIG)
+async def ollama_embedding_func(texts: list[str]) -> np.ndarray:
+    """Generate embeddings using Ollama - includes RAG token tracking and retry logic"""
+    try:
+        # Use shared Ollama client
+        client = get_ollama_client()
+        
+        embeddings = await client.embed_async(
+            texts=texts,
+            model=Config.OLLAMA_EMBEDDING_MODEL
+        )
+        
+        # Track token usage for RAG if global tracker is available
+        global _global_token_tracker
+        if _global_token_tracker and Config.ENABLE_TOKEN_TRACKING:
+            # Ollama doesn't provide token counts for embeddings
+            # We could estimate based on text length if needed
+            # For now, just log that embeddings were generated
+            logger.debug(f"Ollama generated embeddings for {len(texts)} texts")
+        
+        logger.info(f"Generated Ollama embeddings for {len(texts)} texts")
+        return embeddings
+        
+    except Exception as e:
+        logger.error(f"Error in ollama_embedding_func: {e}")
+        raise
+
 class RAGManager:
     def __init__(self):
         self.working_dir = Config.WORKING_DIR
@@ -115,9 +193,9 @@ class RAGManager:
         self.token_tracker = TokenTracker()
         self.enable_token_tracking = Config.ENABLE_TOKEN_TRACKING
         
-        # Set the global token tracker for direct Azure functions
+        # Set the global token tracker for LLM functions
         set_global_token_tracker(self.token_tracker)
-        logger.info("RAGManager initialized with direct Azure OpenAI embedding")
+        logger.info(f"RAGManager initialized with {Config.LLM_PROVIDER.title()} provider")
     
     @retry_sync(max_attempts=3, base_delay=2.0, retryable_exceptions=(ServiceUnavailable, TransientError, ConnectionError))
     def clear_neo4j_database(self):
@@ -189,7 +267,7 @@ class RAGManager:
                 client.close()
     
     async def initialize(self):
-        """Initialize LightRAG with Azure OpenAI functions, Neo4j graph storage, and MongoDB KV/doc status storage"""
+        """Initialize LightRAG with chosen LLM provider, Neo4j graph storage, and MongoDB KV/doc status storage"""
         # Configuration validation happens at application startup in main.py
         # No need to validate here again
         
@@ -197,13 +275,28 @@ class RAGManager:
             # Test database connections before initializing LightRAG
             self._test_database_connections()
             
+            # Choose LLM and embedding functions based on provider
+            if Config.LLM_PROVIDER == "azure":
+                llm_func = azure_llm_callback
+                embed_func = embedding_func
+                embed_dim = Config.EMBEDDING_DIMENSION
+                logger.info("Using Azure OpenAI for LLM and embeddings")
+            elif Config.LLM_PROVIDER == "ollama":
+                llm_func = ollama_llm_callback
+                embed_func = ollama_embedding_func
+                # For nomic-embed-text, the dimension is 768
+                embed_dim = 768 if Config.OLLAMA_EMBEDDING_MODEL.startswith("nomic-embed-text") else Config.EMBEDDING_DIMENSION
+                logger.info(f"Using Ollama for LLM ({Config.OLLAMA_LLM_MODEL}) and embeddings ({Config.OLLAMA_EMBEDDING_MODEL})")
+            else:
+                raise ValueError(f"Unknown LLM provider: {Config.LLM_PROVIDER}")
+            
             self.lightrag_instance = LightRAG(
                 working_dir=str(self.working_dir),
-                llm_model_func=azure_llm_callback,
+                llm_model_func=llm_func,
                 embedding_func=EmbeddingFunc(
-                    embedding_dim=Config.EMBEDDING_DIMENSION,
+                    embedding_dim=embed_dim,
                     max_token_size=8192,
-                    func=embedding_func,
+                    func=embed_func,
                 ),
                 vector_storage="FaissVectorDBStorage",
                 graph_storage="Neo4JStorage",
@@ -211,7 +304,7 @@ class RAGManager:
                 doc_status_storage="MongoDocStatusStorage",
             )
             
-            logger.info("Initialized LightRAG with Azure OpenAI, Neo4j graph storage, and MongoDB KV/doc status storage")
+            logger.info(f"Initialized LightRAG with {Config.LLM_PROVIDER.title()} provider, Neo4j graph storage, and MongoDB KV/doc status storage")
             
             await self.lightrag_instance.initialize_storages()
             await initialize_pipeline_status()

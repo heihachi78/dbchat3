@@ -2,9 +2,76 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+def clear_dbchat3_env_vars():
+    """Clear all DBChat3-related environment variables before loading from .env file.
+    
+    This ensures a clean state and prevents conflicts from previously set environment variables.
+    """
+    # List of all DBChat3 environment variables
+    dbchat3_env_vars = [
+        # LLM Provider
+        'LLM_PROVIDER',
+        
+        # Azure OpenAI
+        'AZURE_OPENAI_API_KEY',
+        'AZURE_OPENAI_ENDPOINT', 
+        'AZURE_OPENAI_API_VERSION',
+        'AZURE_OPENAI_DEPLOYMENT',
+        'AZURE_EMBEDDING_DEPLOYMENT',
+        'AZURE_EMBEDDING_API_VERSION',
+        
+        # Ollama
+        'OLLAMA_HOST',
+        'OLLAMA_LLM_MODEL',
+        'OLLAMA_EMBEDDING_MODEL',
+        'OLLAMA_TIMEOUT',
+        
+        # Neo4j
+        'NEO4J_URI',
+        'NEO4J_USERNAME',
+        'NEO4J_PASSWORD',
+        'NEO4J_DATABASE',
+        'NEO4J_WORKSPACE',
+        
+        # MongoDB
+        'MONGO_USER',
+        'MONGO_PASS',
+        'MONGO_URI',
+        'MONGO_DATABASE',
+        'MONGODB_WORKSPACE',
+        
+        # Model Settings
+        'EMBEDDING_DIMENSION',
+        
+        # Logging
+        'LOG_DIR',
+        
+        # Token Tracking
+        'ENABLE_TOKEN_TRACKING',
+        'SHOW_TOKEN_USAGE_IN_CHAT',
+    ]
+    
+    cleared_vars = []
+    for var_name in dbchat3_env_vars:
+        if var_name in os.environ:
+            os.environ.pop(var_name)
+            cleared_vars.append(var_name)
+    
+    # Log cleared variables if any were found
+    if cleared_vars:
+        # Use print since logging isn't configured yet
+        print(f"Cleared {len(cleared_vars)} existing environment variables: {', '.join(cleared_vars)}")
+
+# Clear any existing DBChat3 environment variables before loading from .env
+clear_dbchat3_env_vars()
+
+# Load environment variables from .env file
 load_dotenv()
 
 class Config:
+    # LLM Provider settings
+    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "azure").lower()  # "azure" or "ollama"
+    
     # Azure OpenAI settings
     AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
     AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
@@ -13,6 +80,12 @@ class Config:
     
     AZURE_EMBEDDING_DEPLOYMENT = os.getenv("AZURE_EMBEDDING_DEPLOYMENT")
     AZURE_EMBEDDING_API_VERSION = os.getenv("AZURE_EMBEDDING_API_VERSION")
+    
+    # Ollama settings
+    OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+    OLLAMA_LLM_MODEL = os.getenv("OLLAMA_LLM_MODEL", "dbchat3model:latest")
+    OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text:latest")
+    OLLAMA_TIMEOUT = os.getenv("OLLAMA_TIMEOUT", "300")
     
     # Neo4j settings
     NEO4J_URI = os.getenv("NEO4J_URI", "neo4j://localhost:7687")
@@ -34,7 +107,7 @@ class Config:
     LOG_DIR = Path(os.getenv("LOG_DIR", "logs"))
     
     # Model settings
-    EMBEDDING_DIMENSION = int(os.getenv("AZURE_EMBEDDING_DIMENSION", "3072"))  # small 1536, large 3072
+    EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "3072"))  # Azure: 1536/3072, Ollama nomic-embed-text: 768
     
     # Token tracking settings
     ENABLE_TOKEN_TRACKING = os.getenv("ENABLE_TOKEN_TRACKING", "true").lower() == "true"
@@ -105,16 +178,49 @@ class Config:
             )
     
     @classmethod
+    def validate_ollama_config(cls):
+        """Validate Ollama configuration"""
+        if not cls.OLLAMA_HOST:
+            raise ValueError(
+                "OLLAMA_HOST environment variable must be set\n"
+                "Example: http://localhost:11434\n"
+                "This is the address where your Ollama server is running."
+            )
+        
+        if not cls.OLLAMA_LLM_MODEL:
+            raise ValueError(
+                "OLLAMA_LLM_MODEL environment variable must be set\n"
+                "Example: dbchat3model:latest\n"
+                "Make sure this model is pulled in your Ollama server."
+            )
+        
+        if not cls.OLLAMA_EMBEDDING_MODEL:
+            raise ValueError(
+                "OLLAMA_EMBEDDING_MODEL environment variable must be set\n"
+                "Example: nomic-embed-text:latest\n"
+                "Make sure this model is pulled in your Ollama server."
+            )
+    
+    @classmethod
     def validate_all_config(cls):
         """Validate all configuration"""
         errors = []
         
-        # Validate each configuration and collect errors
-        try:
-            cls.validate_azure_config()
-        except ValueError as e:
-            errors.append(f"Azure OpenAI Configuration:\n{str(e)}")
+        # Validate provider-specific configuration
+        if cls.LLM_PROVIDER == "azure":
+            try:
+                cls.validate_azure_config()
+            except ValueError as e:
+                errors.append(f"Azure OpenAI Configuration:\n{str(e)}")
+        elif cls.LLM_PROVIDER == "ollama":
+            try:
+                cls.validate_ollama_config()
+            except ValueError as e:
+                errors.append(f"Ollama Configuration:\n{str(e)}")
+        else:
+            errors.append(f"Invalid LLM_PROVIDER: '{cls.LLM_PROVIDER}'. Must be 'azure' or 'ollama'.")
         
+        # Always validate database configurations
         try:
             cls.validate_neo4j_config()
         except ValueError as e:
