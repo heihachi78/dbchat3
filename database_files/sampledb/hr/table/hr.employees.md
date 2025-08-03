@@ -1,138 +1,126 @@
-# HR.EMPLOYEES Table Documentation
+**HR.EMPLOYEES Table Overview**
+=====================================
 
-## Object Overview
-**Type:** Table  
-**Purpose:** Stores core employee data for the HR department, including personal information, job details, department assignments, and managerial relationships.  
-**Role:** Central repository for employee records, enabling tracking of hiring, job roles, compensation, and organizational structure.  
-**Business Context:** Used for payroll processing, performance management, and organizational reporting. Supports queries for employee hierarchy, departmental statistics, and job role analysis.
+The HR.EMPLOYEES table is a critical component of the database schema, containing essential information about employees in an organization.
 
----
+### Primary Purpose and Role
 
-## Detailed Structure & Components
+The primary purpose of the HR.EMPLOYEES table is to store employee data, including personal details, job information, and department assignments. This table serves as a central repository for employee data, enabling various business processes such as payroll management, performance tracking, and benefits administration.
 
-### Columns
-| Column Name        | Data Type       | Constraints                          | Description                                                                 |
-|--------------------|-----------------|--------------------------------------|-----------------------------------------------------------------------------|
-| EMPLOYEE_ID        | NUMBER(6)       | NOT NULL, PRIMARY KEY               | Unique identifier for employees.                                           |
-| FIRST_NAME         | VARCHAR2(20)    | NULL                                 | Employee's first name.                                                     |
-| LAST_NAME          | VARCHAR2(25)    | NOT NULL                            | Employee's last name.                                                      |
-| EMAIL              | VARCHAR2(25)    | NOT NULL, UNIQUE                    | Employee's email address.                                                  |
-| PHONE_NUMBER       | VARCHAR2(20)    | NULL                                 | Employee's phone number (includes country code).                           |
-| HIRE_DATE          | DATE            | NOT NULL                            | Date employee started on current job.                                      |
-| JOB_ID             | VARCHAR2(10)    | NOT NULL                            | Current job role (foreign key to JOBS table).                              |
-| SALARY             | NUMBER(8,2)     | NULL, CHECK (SALARY > 0)            | Monthly salary.                                                            |
-| COMMISSION_PCT     | NUMBER(2,2)     | DEFAULT 0.00                        | Commission percentage (only applicable to sales department employees).     |
-| MANAGER_ID         | NUMBER(6)       | NULL, FOREIGN KEY                   | Manager's employee ID (self-referential).                                  |
-| DEPARTMENT_ID      | NUMBER(4)       | FOREIGN KEY                         | Department ID (foreign key to DEPARTMENTS table).                          |
+### Business Context and Main Use Cases
 
----
+The HR.EMPLOYEES table is used in the following business contexts:
 
-## Component Analysis
+*   Payroll processing: The table contains salary information, which is used to calculate employee pay.
+*   Performance evaluation: The table stores job information, which is used to evaluate employee performance.
+*   Benefits administration: The table contains department assignments, which are used to determine employee benefits.
 
-### Business Meaning & Constraints
-- **EMPLOYEE_ID**: Primary key, uniquely identifies each employee.  
-- **EMAIL**: Unique constraint ensures no duplicate email addresses.  
-- **SALARY**: Must be greater than zero (enforced by check constraint).  
-- **COMMISSION_PCT**: Default value of 0.00, restricted to sales department employees (business rule).  
-- **MANAGER_ID**: Self-referential foreign key, enabling hierarchical queries (e.g., CONNECT BY).  
-- **HIRE_DATE**: Not null, tracks when employees started their current role.  
+### Detailed Structure & Components
+------------------------------------
 
-### Data Type Specifications
-- **NUMBER(6)**: 6-digit integer (e.g., EMPLOYEE_ID).  
-- **VARCHAR2(25)**: 25-byte string (e.g., EMAIL).  
-- **DATE**: Standard date type (e.g., HIRE_DATE).  
-- **NUMBER(8,2)**: 8-digit number with 2 decimal places (e.g., SALARY).  
+#### Columns
 
-### Validation Rules
-- **Unique Email**: Prevents duplicate email entries.  
-- **Positive Salary**: Ensures valid compensation data.  
-- **Manager ID Validity**: Foreign key to EMPLOYEES table.  
-- **Job ID Validity**: Foreign key to JOBS table.  
-- **Department ID Validity**: Foreign key to DEPARTMENTS table.  
+| Column Name | Data Type | Description |
+| --- | --- | --- |
+| EMPLOYEE_ID | NUMBER (6) | Primary key of employees table. Unique identifier for each employee. |
+| FIRST_NAME | VARCHAR2 (20 BYTE) | First name of the employee. A not null column. |
+| LAST_NAME | VARCHAR2 (25 BYTE) | Last name of the employee. A not null column. |
+| EMAIL | VARCHAR2 (25 BYTE) | Email id of the employee |
+| PHONE_NUMBER | VARCHAR2 (20 BYTE) | Phone number of the employee; includes country code and area code |
+| HIRE_DATE | DATE | Date when the employee started on this job. A not null column. |
+| JOB_ID | VARCHAR2 (10 BYTE) | Current job of the employee; foreign key to job_id column of the jobs table. A not null column. |
+| SALARY | NUMBER (8,2) | Monthly salary of the employee. Must be greater than zero (enforced by constraint emp_salary_min) |
+| COMMISSION_PCT | NUMBER (2,2) | Commission percentage of the employee; Only employees in sales department eligible for commission percentage |
+| MANAGER_ID | NUMBER (6) | Manager id of the employee; has same domain as manager_id in departments table. Foreign key to employee_id column of employees table. Useful for reflexive joins and CONNECT BY query |
+| DEPARTMENT_ID | NUMBER (4) | Department id where employee works; foreign key to department_id column of the departments table |
 
-### Default Values
-- **COMMISSION_PCT**: Default 0.00 (no commission unless specified).  
+#### Constraints
 
-### Special Handling
-- **Self-referential Manager ID**: Enables recursive queries for organizational hierarchy.  
-- **Phone Number Format**: Includes country code and area code (e.g., +1 555 123 4567).  
+The HR.EMPLOYEES table has several constraints:
 
----
+*   `emp_salary_min`: Ensures that the salary is greater than zero.
+*   `emp_email_uk`: Ensures that the email address is unique.
+*   `emp_dept_fk`: Establishes a foreign key relationship with the departments table.
+*   `emp_job_fk`: Establishes a foreign key relationship with the jobs table.
+*   `emp_manager_fk`: Establishes a foreign key relationship with the employees table.
 
-## Complete Relationship Mapping
+### Component Analysis
 
-### Foreign Key Relationships
-1. **DEPARTMENT_ID** → **DEPARTMENTS.DEPARTMENT_ID**  
-   - Links employee to their department.  
-2. **JOB_ID** → **JOBS.JOB_ID**  
-   - Links employee to their current job role.  
-3. **MANAGER_ID** → **EMPLOYEES.EMPLOYEE_ID**  
-   - Self-referential: links employee to their manager.  
+#### Inline Comments
 
-### Hierarchical Structure
-- **Manager-employee hierarchy**: Through MANAGER_ID, allows querying organizational charts (e.g., CONNECT BY).  
+The inline comments provide additional information about each column:
 
-### Dependencies
-- **Depends on**: JOBS, DEPARTMENTS tables (via foreign keys).  
-- **Dependent on**: EMPLOYEE_ID (primary key), EMAIL (unique constraint).  
+*   `EMPLOYEE_ID` is the primary key of the employees table.
+*   `FIRST_NAME` and `LAST_NAME` are not null columns, indicating that they must be provided for every employee.
+*   `EMAIL` is an email address, which may or may not be unique.
+*   `PHONE_NUMBER` includes country code and area code.
+*   `HIRE_DATE` is the date when the employee started on this job.
+*   `JOB_ID` is the current job of the employee, which is a foreign key to the jobs table.
+*   `SALARY` must be greater than zero.
+*   `COMMISSION_PCT` is only applicable for employees in the sales department.
+*   `MANAGER_ID` has the same domain as manager_id in the departments table and is used for reflexive joins and CONNECT BY queries.
+*   `DEPARTMENT_ID` is a foreign key to the department_id column of the departments table.
 
----
+#### Data Type Specifications
 
-## Comprehensive Constraints & Rules
+The data types for each column are specified:
 
-### Database Constraints
-1. **Primary Key**: EMPLOYEE_ID ensures unique employee records.  
-2. **Unique Constraint**: EMAIL prevents duplicate email addresses.  
-3. **Foreign Keys**:  
-   - DEPARTMENT_ID → DEPARTMENTS  
-   - JOB_ID → JOBS  
-   - MANAGER_ID → EMPLOYEES  
-4. **Check Constraint**: SALARY > 0 enforces valid compensation data.  
+*   `NUMBER (6)` indicates that the EMPLOYEE_ID has a precision of 6 digits.
+*   `VARCHAR2 (20 BYTE)` indicates that the FIRST_NAME and LAST_NAME have a maximum length of 20 bytes.
+*   `VARCHAR2 (25 BYTE)` indicates that the EMAIL has a maximum length of 25 bytes.
+*   `VARCHAR2 (10 BYTE)` indicates that the JOB_ID has a maximum length of 10 bytes.
 
-### Business Rules
-- **Commission Eligibility**: COMMISSION_PCT is only applicable to sales department employees (implied by comment).  
-- **Manager Validity**: MANAGER_ID must reference an existing employee.  
-- **Salary Minimum**: SALARY must be positive (enforced by check constraint).  
+#### Validation Rules
 
-### Security & Integrity
-- **Unique Email**: Prevents duplicate user accounts.  
-- **Foreign Key Enforcement**: Ensures data consistency across related tables.  
+The following validation rules are enforced:
 
----
+*   The salary must be greater than zero (`emp_salary_min`).
+*   The email address must be unique (`emp_email_uk`).
 
-## Usage Patterns & Integration
+### Complete Relationship Mapping
 
-### Business Processes
-- **Payroll**: SALARY and COMMISSION_PCT used for compensation calculations.  
-- **Organizational Reports**: MANAGER_ID and DEPARTMENT_ID for hierarchy and departmental stats.  
-- **Job Role Analysis**: JOB_ID for tracking employee roles over time.  
+The HR.EMPLOYEES table has several foreign key relationships with other tables:
 
-### Query Patterns
-- **Hierarchical Queries**: CONNECT BY to traverse manager-employee relationships.  
-- **Departmental Statistics**: GROUP BY DEPARTMENT_ID for departmental employee counts.  
-- **Job Role Distribution**: COUNT(JOB_ID) per job role.  
+*   `emp_dept_fk`: Establishes a foreign key relationship with the departments table.
+*   `emp_job_fk`: Establishes a foreign key relationship with the jobs table.
+*   `emp_manager_fk`: Establishes a foreign key relationship with the employees table.
 
-### Performance Considerations
-- **Indexing**: Implicit indexing on primary key (EMPLOYEE_ID) and foreign keys (DEPARTMENT_ID, JOB_ID, MANAGER_ID).  
-- **Unique Constraint**: EMAIL column may be used for fast lookups.  
+These relationships enable various business processes, such as payroll management and performance tracking.
 
----
+### Comprehensive Constraints & Rules
 
-## Implementation Details
+The HR.EMPLOYEES table has several constraints:
 
-### Storage & Logging
-- **LOGGING**: Table is logged for recovery purposes.  
-- **Storage**: Standard storage for tables (no specific size or partitioning details provided).  
+*   `emp_salary_min`: Ensures that the salary is greater than zero.
+*   `emp_email_uk`: Ensures that the email address is unique.
+*   `emp_dept_fk`: Establishes a foreign key relationship with the departments table.
+*   `emp_job_fk`: Establishes a foreign key relationship with the jobs table.
+*   `emp_manager_fk`: Establishes a foreign key relationship with the employees table.
 
-### Database Features
-- **Primary Key**: Ensures unique, immutable employee identifiers.  
-- **Foreign Keys**: Enforces referential integrity across tables.  
-- **Default Values**: COMMISSION_PCT defaults to 0.00.  
+These constraints ensure data integrity and enable various business processes, such as payroll management and performance tracking.
 
-### Maintenance
-- **Indexing**: Foreign keys and primary key are automatically indexed.  
-- **Constraints**: Checked at insert/update time to maintain data integrity.  
+### Usage Patterns & Integration
 
---- 
+The HR.EMPLOYEES table is used in various business contexts:
 
-This documentation provides a complete, structured overview of the HR.EMPLOYEES table, including its schema, constraints, relationships, and business logic, suitable for integration into a graph database for RAG purposes.
+*   Payroll processing: The table contains salary information, which is used to calculate employee pay.
+*   Performance evaluation: The table stores job information, which is used to evaluate employee performance.
+*   Benefits administration: The table contains department assignments, which are used to determine employee benefits.
+
+The HR.EMPLOYEES table integrates with other tables in the database schema:
+
+*   departments table
+*   jobs table
+*   employees table
+
+These integrations enable various business processes and ensure data consistency across the database schema.
+
+### Implementation Details
+
+The HR.EMPLOYEES table is implemented using the following details:
+
+*   Storage specifications: The table stores employee data in a relational format.
+*   Logging settings: The table logs changes to employee data, which can be used for auditing purposes.
+*   Special database features utilized: The table uses foreign key relationships and constraints to ensure data integrity.
+
+These implementation details enable various business processes and ensure data consistency across the database schema.

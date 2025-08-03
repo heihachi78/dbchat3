@@ -1,91 +1,92 @@
-# HR.COUNTRIES (Table)
+**HR.COUNTRIES Table Documentation**
+=====================================
 
-## Object Overview
-The HR.COUNTRIES table stores country-related data for the Human Resources department. It serves as a central repository for country identifiers, names, and regional associations. This table is critical for applications that require geographical or administrative data, such as employee location tracking, regional reporting, or international compliance management.
+### Object Overview
 
-## Detailed Structure & Components
-**Columns:**
-1. **COUNTRY_ID**  
-   - Type: CHAR(2 BYTE)  
-   - Constraint: NOT NULL  
-   - Purpose: Primary key identifying a country  
+The `HR.COUNTRIES` table is a critical component of the HR database schema, responsible for storing information about countries. It serves as a primary data source for country-related queries and provides a foundation for more complex HR-related operations.
 
-2. **COUNTRY_NAME**  
-   - Type: VARCHAR2(40 BYTE)  
-   - Purpose: Name of the country  
+### Detailed Structure & Components
 
-3. **REGION_ID**  
-   - Type: NUMBER  
-   - Purpose: Foreign key referencing the REGION_ID in the REGIONS table  
+#### Columns
 
-## Component Analysis
-- **COUNTRY_ID**:  
-  - **Business Meaning**: Unique identifier for a country (e.g., "US", "CA").  
-  - **Data Type**: 2-byte character, ensuring compact storage.  
-  - **Constraints**: Mandatory (NOT NULL), uniquely identifies rows.  
-  - **Default**: Not specified, as it is a primary key.  
+| Column Name | Data Type | Length | Description |
+| --- | --- | --- | --- |
+| COUNTRY_ID | CHAR(2 BYTE) |  | Primary key of countries table. |
+| COUNTRY_NAME | VARCHAR2 (40 BYTE) |  | Country name |
+| REGION_ID | NUMBER |  | Region ID for the country. Foreign key to region_id column in the departments table. |
 
-- **COUNTRY_NAME**:  
-  - **Business Meaning**: Human-readable name of the country.  
-  - **Data Type**: 40-byte variable-length string, accommodating common country names.  
-  - **Constraints**: Optional (NULL allowed).  
+#### Constraints
 
-- **REGION_ID**:  
-  - **Business Meaning**: Links a country to a region (e.g., "North America").  
-  - **Data Type**: 64-bit integer, suitable for regional identifiers.  
-  - **Constraints**: Foreign key to REGIONS.REGION_ID.  
+* **Primary Key**: `COUNTRY_ID` is the primary key of the countries table, uniquely identifying each country.
+* **Foreign Key**: The `REGION_ID` column is a foreign key referencing the `REGION_ID` column in the `REGIONS` table, establishing a relationship between countries and regions.
 
-## Complete Relationship Mapping
-- **Foreign Key**: REGION_ID → REFERENCES HR.REGIONS.REGION_ID  
-  - **Purpose**: Establishes a many-to-one relationship between countries and regions.  
-  - **Impact**: Ensures a country belongs to a valid region.  
+#### Indexes
 
-- **Primary Key**: COUNTRY_ID  
-  - **Purpose**: Uniquely identifies each country record.  
+No explicit indexes are defined for this table. However, the logging clause suggests that indexing may be necessary to improve query performance.
 
-- **Dependencies**:  
-  - This table depends on the HR.REGIONS table for REGION_ID values.  
+### Component Analysis (Leverage ALL DDL Comments)
 
-- **Dependents**:  
-  - Tables or views that reference this table (e.g., HR.EMPLOYEES, HR.DEPARTMENTS) may depend on it.  
+* **Business Meaning**: The country name is a descriptive field, providing essential information about each country.
+* **Data Type Specifications**:
+	+ `CHAR(2 BYTE)` for `COUNTRY_ID` implies a fixed-length character string with a maximum length of 2 bytes.
+	+ `VARCHAR2 (40 BYTE)` for `COUNTRY_NAME` suggests a variable-length character string with a maximum length of 40 bytes.
+* **Validation Rules and Constraints**:
+	+ The primary key constraint ensures that each country has a unique identifier.
+	+ The foreign key constraint establishes a relationship between countries and regions, ensuring data consistency.
 
-## Comprehensive Constraints & Rules
-- **Primary Key Constraint (COUNTRY_C_ID_PK)**:  
-  - Ensures COUNTRY_ID is unique and non-null.  
-  - Enforced at the database level to maintain data integrity.  
+### Complete Relationship Mapping
 
-- **Foreign Key Constraint (COUNTR_REG_FK)**:  
-  - Ensures REGION_ID exists in the REGIONS table.  
-  - Not deferrable, meaning constraints are enforced immediately.  
+The `HR.COUNTRIES` table is related to the following objects:
 
-- **Logging**:  
-  - The table is LOGGING-enabled, meaning changes are logged for auditability.  
+* **REGIONS**: The `REGION_ID` column in `HR.COUNTRIES` references the `REGION_ID` column in `HR.REGIONS`, establishing a one-to-many relationship between countries and regions.
+* **DEPARTMENTS**: The foreign key constraint in `HR.COUNTRIES` also references the `REGION_ID` column in `HR.DEPTMNTS`, indicating that each country is associated with multiple departments.
 
-## Usage Patterns & Integration
-- **Common Use Cases**:  
-  - Retrieving country details for employee location data.  
-  - Filtering data by region (e.g., "All countries in Europe").  
+### Comprehensive Constraints & Rules
 
-- **Integration**:  
-  - Joined with HR.REGIONS for regional analysis.  
-  - Used in queries to validate country-region relationships.  
+The following constraints are enforced on this table:
 
-- **Performance**:  
-  - The primary key index on COUNTRY_ID ensures fast lookups.  
-  - The foreign key index on REGION_ID optimizes joins with the REGIONS table.  
+* Primary key constraint (`COUNTRY_ID`)
+* Foreign key constraint (`REGION_ID`) referencing `REGIONS` and `DEPTMNTS`
 
-## Implementation Details
-- **Storage**:  
-  - COUNTRY_ID: 2-byte CHAR, minimizing storage.  
-  - COUNTRY_NAME: 40-byte VARCHAR2, allowing flexibility.  
-  - REGION_ID: 64-bit NUMBER, suitable for regional identifiers.  
+### Usage Patterns & Integration
 
-- **Logging**:  
-  - All DML operations (INSERT, UPDATE, DELETE) are logged.  
+This table is used in various HR-related operations, such as:
 
-- **Maintenance**:  
-  - Regular checks on foreign key constraints to ensure data consistency.  
-  - Indexes on COUNTRY_ID and REGION_ID are critical for performance.  
+* Querying country information
+* Establishing relationships between countries and regions
+* Integrating with other HR tables, like departments and employees
 
----  
-This documentation provides a complete, structured overview of the HR.COUNTRIES table, including its schema, constraints, relationships, and usage context. It is designed to support both technical and business stakeholders in understanding and utilizing the table effectively.
+### Implementation Details
+
+The logging clause suggests that indexing may be necessary to improve query performance. Additionally, the database features utilized include foreign key constraints and primary keys.
+
+**HR.COUNTRIES Table DDL**
+```sql
+CREATE TABLE HR.COUNTRIES 
+    ( 
+     COUNTRY_ID CHAR (2 BYTE)  NOT NULL , 
+     COUNTRY_NAME VARCHAR2 (40 BYTE) , 
+     REGION_ID NUMBER 
+    ) LOGGING 
+;
+
+COMMENT ON COLUMN HR.COUNTRIES.COUNTRY_ID IS 'Primary key of countries table.' ;
+
+COMMENT ON COLUMN HR.COUNTRIES.COUNTRY_NAME IS 'Country name' ;
+
+COMMENT ON COLUMN HR.COUNTRIES.REGION_ID IS 'Region ID for the country. Foreign key to region_id column in the departments table.' ;
+
+ALTER TABLE HR.COUNTRIES 
+    ADD CONSTRAINT COUNTRY_C_ID_PK PRIMARY KEY ( COUNTRY_ID ) ;
+
+ALTER TABLE hr.COUNTRIES 
+    ADD CONSTRAINT COUNTR_REG_FK FOREIGN KEY 
+    ( 
+     REGION_ID
+    ) 
+    REFERENCES hr.REGIONS 
+    ( 
+     REGION_ID
+    ) 
+    NOT DEFERRABLE ;
+```
