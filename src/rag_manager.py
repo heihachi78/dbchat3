@@ -1,4 +1,5 @@
 import logging
+import asyncio
 import numpy as np
 from urllib.parse import quote_plus
 from openai import RateLimitError, APIConnectionError, APITimeoutError
@@ -450,8 +451,17 @@ class RAGManager:
                     content = doc.read()
                     
                 # Insert with timeout monitoring
-                await self.lightrag_instance.ainsert([content], file_paths=[md_file.name])
-                logger.info(f"Successfully inserted documentation from {md_file}")
+                # Use asyncio timeout to prevent hanging on LightRAG operations
+                insert_timeout = int(Config.OLLAMA_TIMEOUT) * 2  # Double the Ollama timeout for complex operations
+                logger.info(f"Starting LightRAG insert for {md_file.name} with {insert_timeout}s timeout")
+                try:
+                    await asyncio.wait_for(
+                        self.lightrag_instance.ainsert([content], file_paths=[md_file.name]),
+                        timeout=insert_timeout
+                    )
+                    logger.info(f"Successfully inserted documentation from {md_file}")
+                except asyncio.TimeoutError:
+                    raise TimeoutError(f"LightRAG insert timed out after {insert_timeout}s for {md_file.name} - likely stuck in knowledge graph extraction")
                 successful_insertions += 1
                 
             except Exception as e:
