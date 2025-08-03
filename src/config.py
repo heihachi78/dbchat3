@@ -25,6 +25,7 @@ def clear_dbchat3_env_vars():
         'OLLAMA_LLM_MODEL',
         'OLLAMA_EMBEDDING_MODEL',
         'OLLAMA_TIMEOUT',
+        'OLLAMA_NUM_CTX',
         
         # Neo4j
         'NEO4J_URI',
@@ -86,6 +87,7 @@ class Config:
     OLLAMA_LLM_MODEL = os.getenv("OLLAMA_LLM_MODEL", "dbchat3model:latest")
     OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text:latest")
     OLLAMA_TIMEOUT = os.getenv("OLLAMA_TIMEOUT", "300")
+    OLLAMA_NUM_CTX = int(os.getenv("OLLAMA_NUM_CTX", "32768"))
     
     # Neo4j settings
     NEO4J_URI = os.getenv("NEO4J_URI", "neo4j://localhost:7687")

@@ -134,7 +134,7 @@ async def ollama_llm_callback(prompt: str, system_prompt: str = None,
         options = {
             "temperature": kwargs.get("temperature", 0),
             "top_p": kwargs.get("top_p", 1),
-            "num_ctx": 32768  # Ensure sufficient context
+            "num_ctx": Config.OLLAMA_NUM_CTX  # Configurable context window
         }
         
         result = await client.chat_completion_async(

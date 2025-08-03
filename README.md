@@ -141,6 +141,7 @@ OLLAMA_HOST=http://localhost:11434
 OLLAMA_LLM_MODEL=qwen3:4b
 OLLAMA_EMBEDDING_MODEL=nomic-embed-text:latest
 OLLAMA_TIMEOUT=300
+OLLAMA_NUM_CTX=32768
 ```
 
 **Important**: Ensure your Ollama models are pulled before use:
@@ -148,6 +149,11 @@ OLLAMA_TIMEOUT=300
 ollama pull qwen3:4b
 ollama pull nomic-embed-text:latest
 ```
+
+**Context Window Configuration**:
+- `OLLAMA_NUM_CTX`: Context window size in tokens (default: 32768)
+- Larger values enable processing longer documents but use more memory
+- Reduce to 8192 or 16384 for faster processing with shorter documents
 
 ### Database Configuration
 

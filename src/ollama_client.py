@@ -64,7 +64,7 @@ class OllamaClient:
                 options={
                     "temperature": 0,
                     "top_p": 1,
-                    "num_ctx": 32768,  # Ensure sufficient context for documentation
+                    "num_ctx": Config.OLLAMA_NUM_CTX,  # Configurable context window
                 }
             )
             
@@ -102,7 +102,7 @@ class OllamaClient:
             options = kwargs.get("options", {})
             # Ensure we have sufficient context
             if "num_ctx" not in options:
-                options["num_ctx"] = 32768
+                options["num_ctx"] = Config.OLLAMA_NUM_CTX
             
             response = await self.async_client.chat(
                 model=model,
