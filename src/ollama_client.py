@@ -4,32 +4,8 @@ import ollama
 import numpy as np
 import re
 from typing import List, Dict, Any
-from .retry_utils import retry_sync, retry_async
 
 logger = logging.getLogger(__name__)
-
-# Ollama-specific retry configuration with httpx timeout support
-try:
-    import httpx
-    _ollama_exceptions = (ollama.ResponseError, ConnectionError, TimeoutError, httpx.ReadTimeout, httpx.TimeoutException, httpx.ConnectTimeout)
-except ImportError:
-    _ollama_exceptions = (ollama.ResponseError, ConnectionError, TimeoutError)
-
-# Standard Ollama retry configuration for documentation generation
-OLLAMA_RETRY_CONFIG = {
-    "max_attempts": 3,
-    "base_delay": 1.0,
-    "max_delay": 10.0,
-    "retryable_exceptions": _ollama_exceptions
-}
-
-# LightRAG-specific Ollama retry configuration with longer timeouts for knowledge graph operations
-OLLAMA_LIGHTRAG_RETRY_CONFIG = {
-    "max_attempts": 2,  # Fewer attempts, longer timeouts
-    "base_delay": 10.0,  # Start with 10 second delay
-    "max_delay": 60.0,   # Up to 1 minute delay
-    "retryable_exceptions": _ollama_exceptions
-}
 
 class OllamaClient:
     def __init__(self, host: str = "http://localhost:11434", timeout: int = 300):
@@ -62,9 +38,8 @@ class OllamaClient:
         # Strip any leading/trailing whitespace that might be left
         return cleaned_text.strip()
     
-    @retry_sync(**OLLAMA_RETRY_CONFIG)
     def generate_documentation(self, content: str, system_prompt: str, model: str = None) -> str:
-        """Generate documentation for SQL content using Ollama with retry logic"""
+        """Generate documentation for SQL content using Ollama"""
         # Import here to avoid circular import
         from .config import Config
         if model is None:
@@ -108,7 +83,6 @@ class OllamaClient:
             logger.error(f"Error in Ollama generate_documentation: {e}")
             raise
     
-    @retry_async(**OLLAMA_LIGHTRAG_RETRY_CONFIG)
     async def chat_completion_async(self, messages: List[Dict[str, str]], model: str = None, **kwargs) -> str:
         """Async chat completion for LightRAG integration"""
         # Import here to avoid circular import
@@ -148,7 +122,6 @@ class OllamaClient:
             logger.error(f"Error in Ollama async chat completion: {e}")
             raise
     
-    @retry_async(**OLLAMA_LIGHTRAG_RETRY_CONFIG)
     async def embed_async(self, texts: List[str], model: str = None) -> np.ndarray:
         """Async embedding generation for LightRAG integration"""
         # Import here to avoid circular import

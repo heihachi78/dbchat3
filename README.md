@@ -20,7 +20,7 @@ DBChat3 combines multiple LLM providers (Azure OpenAI and Ollama) with LightRAG 
 - **Interactive Chat Interface**: Command-line chat with conversation history and mode switching
 - **Comprehensive Token Usage Tracking**: Monitor API costs and usage patterns with detailed statistics
 - **Configuration Validation**: Automatic validation of all required settings on startup
-- **Error Handling & Timeouts**: Robust error handling with configurable timeouts and retry logic
+- **Error Handling & Timeouts**: Robust error handling with configurable timeouts
 - **Docker Integration**: Easy database setup with Docker Compose
 
 ## Architecture
@@ -386,7 +386,6 @@ dbchat3/
 │   ├── config.py          # Configuration management with validation
 │   ├── documentation_processor.py  # SQL to Markdown conversion
 │   ├── rag_manager.py     # LightRAG integration with hybrid storage
-│   ├── retry_utils.py     # Retry logic utilities
 │   └── token_aggregator.py # Token usage tracking and reporting
 ├── database_files/        # Input SQL DDL files
 │   └── sampledb/hr/      # Sample HR schema with SQL/MD files
@@ -432,7 +431,7 @@ dbchat3/
 - **Ollama**: Local models with configurable endpoints and timeouts
 - Unified interface with shared client factories
 - Standalone async functions for LightRAG compatibility
-- Comprehensive error handling and retry logic
+- Comprehensive error handling
 
 ## Database Management
 

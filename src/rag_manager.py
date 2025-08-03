@@ -10,8 +10,7 @@ from .config import Config
 from neo4j import GraphDatabase
 from neo4j.exceptions import ServiceUnavailable, TransientError
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError, InvalidURI
-from .retry_utils import retry_async, retry_sync, AZURE_API_RETRY_CONFIG, LIGHTRAG_RETRY_CONFIG
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +30,9 @@ from .ollama_factory import get_ollama_client
 
 
 # Standalone functions for LightRAG - use shared clients AND track tokens for RAG
-@retry_async(**AZURE_API_RETRY_CONFIG)
 async def azure_llm_callback(prompt: str, system_prompt: str = None, 
                        history_messages: list = None, **kwargs) -> str:
-    """LLM function for LightRAG - uses shared Azure client with RAG token tracking and retry logic"""
+    """LLM function for LightRAG - uses shared Azure client with RAG token tracking"""
     if history_messages is None:
         history_messages = []
     
@@ -78,9 +76,8 @@ async def azure_llm_callback(prompt: str, system_prompt: str = None,
         logger.error(f"Unexpected error in azure_llm_callback: {e}")
         raise
 
-@retry_async(**AZURE_API_RETRY_CONFIG)
 async def embedding_func(texts: list[str]) -> np.ndarray:
-    """Generate embeddings for texts - uses shared Azure client with RAG token tracking and retry logic"""
+    """Generate embeddings for texts - uses shared Azure client with RAG token tracking"""
     try:
         # Use shared client instead of creating new one
         client = get_embedding_client()
@@ -113,10 +110,9 @@ async def embedding_func(texts: list[str]) -> np.ndarray:
         raise
 
 # Ollama integration functions for LightRAG
-@retry_async(**LIGHTRAG_RETRY_CONFIG)
 async def ollama_llm_callback(prompt: str, system_prompt: str = None,
                             history_messages: list = None, **kwargs) -> str:
-    """LLM function for LightRAG using Ollama - includes RAG token tracking and retry logic"""
+    """LLM function for LightRAG using Ollama - includes RAG token tracking"""
     if history_messages is None:
         history_messages = []
     
@@ -158,7 +154,7 @@ async def ollama_llm_callback(prompt: str, system_prompt: str = None,
         
     except Exception as e:
         # Enhanced error logging with context
-        logger.error(f"Error in ollama_llm_callback after {LIGHTRAG_RETRY_CONFIG['max_attempts']} attempts: {e}")
+        logger.error(f"Error in ollama_llm_callback: {e}")
         logger.error(f"Prompt length: {len(prompt)} chars, System prompt: {bool(system_prompt)}")
         logger.error(f"Message count: {len(messages)}, Model: {Config.OLLAMA_LLM_MODEL}")
         
@@ -171,9 +167,8 @@ async def ollama_llm_callback(prompt: str, system_prompt: str = None,
         
         raise
 
-@retry_async(**LIGHTRAG_RETRY_CONFIG)
 async def ollama_embedding_func(texts: list[str]) -> np.ndarray:
-    """Generate embeddings using Ollama - includes RAG token tracking and retry logic"""
+    """Generate embeddings using Ollama - includes RAG token tracking"""
     try:
         # Use shared Ollama client
         client = get_ollama_client()
@@ -196,7 +191,7 @@ async def ollama_embedding_func(texts: list[str]) -> np.ndarray:
         
     except Exception as e:
         # Enhanced error logging for embedding function
-        logger.error(f"Error in ollama_embedding_func after {LIGHTRAG_RETRY_CONFIG['max_attempts']} attempts: {e}")
+        logger.error(f"Error in ollama_embedding_func: {e}")
         logger.error(f"Text count: {len(texts)}, Model: {Config.OLLAMA_EMBEDDING_MODEL}")
         
         # Log specific error types
@@ -219,9 +214,8 @@ class RAGManager:
         set_global_token_tracker(self.token_tracker)
         logger.info(f"RAGManager initialized with {Config.LLM_PROVIDER.title()} provider")
     
-    @retry_sync(max_attempts=3, base_delay=2.0, retryable_exceptions=(ServiceUnavailable, TransientError, ConnectionError))
     def clear_neo4j_database(self):
-        """Clear all data from Neo4j database with retry logic"""
+        """Clear all data from Neo4j database"""
         driver = None
         try:
             driver = GraphDatabase.driver(
@@ -241,7 +235,7 @@ class RAGManager:
                 logger.info("Neo4j database cleared successfully")
                 
         except (ServiceUnavailable, TransientError) as e:
-            logger.error(f"Neo4j connection error (will retry): {e}")
+            logger.error(f"Neo4j connection error: {e}")
             raise
         except Exception as e:
             logger.error(f"Failed to clear Neo4j database: {e}")
@@ -250,9 +244,8 @@ class RAGManager:
             if driver:
                 driver.close()
     
-    @retry_sync(max_attempts=3, base_delay=2.0, retryable_exceptions=(ConnectionFailure, ServerSelectionTimeoutError, InvalidURI))
     def clear_mongodb_database(self):
-        """Clear all data from MongoDB database with retry logic"""
+        """Clear all data from MongoDB database"""
         client = None
         try:
             # Use the same URI building logic as other methods
@@ -279,7 +272,7 @@ class RAGManager:
             logger.info("MongoDB database cleared successfully")
             
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-            logger.error(f"MongoDB connection error (will retry): {e}")
+            logger.error(f"MongoDB connection error: {e}")
             raise
         except Exception as e:
             logger.error(f"Failed to clear MongoDB database: {e}")

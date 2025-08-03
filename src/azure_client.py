@@ -3,7 +3,6 @@ import threading
 from openai import RateLimitError, APIConnectionError, APITimeoutError
 from .config import Config
 from .azure_factory import get_chat_client, get_embedding_client
-from .retry_utils import retry_sync, AZURE_API_RETRY_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +20,8 @@ class AzureOpenAIClient:
         self._token_lock = threading.Lock()
         logger.info("Initialized Azure OpenAI clients")
     
-    @retry_sync(**AZURE_API_RETRY_CONFIG)
     def generate_documentation(self, content: str, system_prompt: str) -> str:
-        """Generate documentation for SQL content with retry logic"""
+        """Generate documentation for SQL content"""
         try:
             messages = [
                 {"role": "system", "content": system_prompt},

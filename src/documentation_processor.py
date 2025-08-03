@@ -4,7 +4,6 @@ import logging
 from pathlib import Path
 from .azure_client import AzureOpenAIClient
 from .config import Config
-from .retry_utils import retry_sync, FILE_OPERATION_RETRY_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -76,9 +75,8 @@ class DocumentationProcessor:
                 
         return sql_files
     
-    @retry_sync(**FILE_OPERATION_RETRY_CONFIG)
     def _cleanup_existing_docs(self):
-        """Remove existing markdown files with retry logic"""
+        """Remove existing markdown files"""
         failed_deletions = []
         
         for md_file in self.database_dir.rglob("*.md"):
@@ -103,13 +101,13 @@ class DocumentationProcessor:
         md_file_path = sql_file.with_suffix(".md")
         
         try:
-            # Generate documentation using Azure OpenAI (has its own retry logic)
+            # Generate documentation using Azure OpenAI
             documentation = self.azure_client.generate_documentation(
                 content, 
                 self.system_prompt
             )
             
-            # Write documentation with error handling and retry
+            # Write documentation with error handling
             self._write_documentation_file(md_file_path, documentation)
             
             logger.info(f"Generated documentation for {sql_file}")
@@ -118,9 +116,8 @@ class DocumentationProcessor:
             logger.error(f"Error generating documentation for {sql_file}: {e}")
             # Don't re-raise - continue processing other files
     
-    @retry_sync(**FILE_OPERATION_RETRY_CONFIG)
     def _write_documentation_file(self, file_path: Path, content: str):
-        """Write documentation to file with retry logic
+        """Write documentation to file
         
         Note: mkdir is required here because this writes to the original database
         directory structure which may have arbitrary subdirectories.
@@ -198,9 +195,8 @@ class DocumentationProcessor:
         if failed_copies:
             logger.warning(f"Failed to copy {len(failed_copies)} files to working directory: {failed_copies}")
     
-    @retry_sync(**FILE_OPERATION_RETRY_CONFIG)
     def _copy_single_file(self, source_file: Path, target_file: Path):
-        """Copy a single file with retry logic - assumes target directory already exists"""
+        """Copy a single file - assumes target directory already exists"""
         try:
             # Read source file content
             content = source_file.read_text(encoding="utf-8")
